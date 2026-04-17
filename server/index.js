@@ -122,6 +122,40 @@ app.get("/api/report", async (req, res) => {
   }
 });
 
+// ─── 인증 ──────────────────────────────────────────────────
+// POST /api/auth/login  { password }
+app.post("/api/auth/login", (req, res) => {
+  const { password } = req.body || {};
+  const correct = process.env.SITE_PASSWORD || "gamja!";
+  if (password === correct) {
+    res.json({ ok: true });
+  } else {
+    res.status(401).json({ ok: false, error: "비밀번호가 틀렸습니다" });
+  }
+});
+
+// ─── 기사 수집 스트리밍 (SSE) ──────────────────────────────
+// GET /api/collect/stream?source=all
+app.get("/api/collect/stream", (req, res) => {
+  const { source = "all" } = req.query;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const send = (data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  collectAll(source, send)
+    .then(() => res.end())
+    .catch(err => {
+      send({ type: "error", error: err.message });
+      res.end();
+    });
+});
+
 // ─── 상태 확인 ─────────────────────────────────────────────
 app.get("/api/status", (req, res) => {
   res.json({

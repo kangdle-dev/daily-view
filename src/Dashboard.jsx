@@ -210,6 +210,54 @@ function ArticleModal({ article, onClose }) {
   );
 }
 
+// ── 수집 진행 패널 ────────────────────────────────────────
+function CollectProgress({ logs, onClose }) {
+  const isRunning = logs.some(l => l.status === "running");
+  return (
+    <div style={{
+      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100,
+      background: "#1E293B", borderTop: "2px solid #334155",
+      boxShadow: "0 -8px 32px rgba(0,0,0,.3)",
+      maxHeight: 260, display: "flex", flexDirection: "column",
+    }}>
+      <div style={{ padding: "10px 16px 8px", borderBottom: "1px solid #334155", display: "flex", alignItems: "center", gap: 8 }}>
+        {isRunning
+          ? <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#22C55E", animation: "pulse 1s infinite" }} />
+          : <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#64748B" }} />
+        }
+        <span style={{ color: "#F1F5F9", fontWeight: 700, fontSize: 13 }}>
+          {isRunning ? "수집 중..." : "수집 완료"}
+        </span>
+        <div style={{ flex: 1 }} />
+        {!isRunning && (
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748B", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "0 4px" }}>×</button>
+        )}
+      </div>
+      <div style={{ overflowY: "auto", padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+        {logs.map((log, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 14, width: 18, textAlign: "center", flexShrink: 0 }}>
+              {log.status === "running" ? "⏳" : log.status === "done" ? "✅" : log.status === "error" ? "❌" : "⚪"}
+            </span>
+            <span style={{ color: log.status === "done" ? "#86EFAC" : log.status === "error" ? "#FCA5A5" : log.status === "running" ? "#FCD34D" : "#64748B", fontSize: 13, fontWeight: 600, minWidth: 80 }}>
+              {log.name}
+            </span>
+            {log.status === "done" && (
+              <span style={{ color: "#4ADE80", fontSize: 12 }}>{log.count}건 수집</span>
+            )}
+            {log.status === "error" && (
+              <span style={{ color: "#F87171", fontSize: 12 }}>오류 발생</span>
+            )}
+            {log.status === "running" && (
+              <span style={{ color: "#FDE68A", fontSize: 12 }}>수집 중...</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── 메인 대시보드 ─────────────────────────────────────────
 export default function Dashboard() {
   const [date, setDate] = useState(todayStr());
@@ -217,6 +265,8 @@ export default function Dashboard() {
   const [sources, setSources] = useState([]);
   const [loading, setLoading] = useState(false);
   const [collecting, setCollecting] = useState(null);
+  const [collectLogs, setCollectLogs] = useState([]);
+  const [showProgress, setShowProgress] = useState(false);
   const [sourceFilter, setSourceFilter] = useState("all");
   const [catFilter, setCatFilter] = useState("전체");
   const [search, setSearch] = useState("");
@@ -243,13 +293,38 @@ export default function Dashboard() {
 
   useEffect(() => { fetchArticles(); }, [date, sourceFilter]);
 
-  const triggerCollect = async (source = "all") => {
+  const triggerCollect = (source = "all") => {
+    if (collecting) return;
     setCollecting(source);
-    try {
-      await fetch("/api/collect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source }) });
-      await fetchArticles();
-    } catch {}
-    setCollecting(null);
+    setCollectLogs([]);
+    setShowProgress(true);
+
+    const es = new EventSource(`/api/collect/stream?source=${source}`);
+
+    es.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+
+      if (data.type === "init") {
+        // 전체 목록 pending으로 초기화
+        setCollectLogs(data.sources.map(s => ({ key: s.key, name: s.name, status: "pending" })));
+      } else if (data.type === "start") {
+        setCollectLogs(prev => prev.map(l => l.key === data.source ? { ...l, status: "running" } : l));
+      } else if (data.type === "done") {
+        setCollectLogs(prev => prev.map(l => l.key === data.source ? { ...l, status: "done", count: data.count } : l));
+      } else if (data.type === "error") {
+        setCollectLogs(prev => prev.map(l => l.key === data.source ? { ...l, status: "error" } : l));
+      } else if (data.type === "complete") {
+        es.close();
+        setCollecting(null);
+        fetchArticles();
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      setCollecting(null);
+      setCollectLogs(prev => prev.map(l => l.status === "running" ? { ...l, status: "error" } : l));
+    };
   };
 
   // 파생 데이터
@@ -426,8 +501,16 @@ export default function Dashboard() {
 
       <ArticleModal article={selected} onClose={() => setSelected(null)} />
 
+      {showProgress && collectLogs.length > 0 && (
+        <CollectProgress
+          logs={collectLogs}
+          onClose={() => setShowProgress(false)}
+        />
+      )}
+
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
