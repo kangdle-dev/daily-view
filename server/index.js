@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getBriefing, saveBriefing, listDates } from "./store.js";
+import { saveCollectLog } from "./collectLogger.js";
 import { getArticles, listArticleDates } from "./articleStore.js";
 import { generateBriefing } from "./generate.js";
 import { startScheduler } from "./scheduler.js";
@@ -136,7 +137,7 @@ app.post("/api/auth/login", (req, res) => {
 
 // ─── 기사 수집 스트리밍 (SSE) ──────────────────────────────
 // GET /api/collect/stream?source=all
-app.get("/api/collect/stream", (req, res) => {
+app.get("/api/collect/stream", async (req, res) => {
   const { source = "all" } = req.query;
 
   res.setHeader("Content-Type", "text/event-stream");
@@ -145,15 +146,56 @@ app.get("/api/collect/stream", (req, res) => {
   res.flushHeaders();
 
   const send = (data) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    try { res.write(`data: ${JSON.stringify(data)}\n\n`); } catch {}
   };
 
-  collectAll(source, send)
-    .then(() => res.end())
-    .catch(err => {
-      send({ type: "error", error: err.message });
-      res.end();
-    });
+  // ── console 인터셉터: 수집 중 모든 로그를 SSE + 파일로 ──
+  const logLines = [];
+  const origLog   = console.log;
+  const origWarn  = console.warn;
+  const origError = console.error;
+  const makeInterceptor = (level) => (...args) => {
+    const msg = args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+    const entry = { time: new Date().toISOString(), level, message: msg };
+    logLines.push(entry);
+    send({ type: "log", level, message: msg });
+    (level === "error" ? origError : level === "warn" ? origWarn : origLog)(...args);
+  };
+  console.log   = makeInterceptor("info");
+  console.warn  = makeInterceptor("warn");
+  console.error = makeInterceptor("error");
+
+  const restore = () => {
+    console.log   = origLog;
+    console.warn  = origWarn;
+    console.error = origError;
+  };
+
+  try {
+    await collectAll(source, send);
+    restore();
+    // 로그 파일 저장
+    await saveCollectLog(logLines);
+    res.end();
+  } catch (err) {
+    restore();
+    send({ type: "error", error: err.message });
+    await saveCollectLog(logLines);
+    res.end();
+  }
+});
+
+// ─── 수집 로그 조회 ────────────────────────────────────────
+// GET /api/collect/logs?date=YYYY-MM-DD  (없으면 오늘)
+app.get("/api/collect/logs", async (req, res) => {
+  const date = req.query.date || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+  try {
+    const { readCollectLog } = await import("./collectLogger.js");
+    const lines = await readCollectLog(date);
+    res.json({ date, lines });
+  } catch {
+    res.json({ date, lines: [] });
+  }
 });
 
 // ─── 상태 확인 ─────────────────────────────────────────────

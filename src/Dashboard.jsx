@@ -211,16 +211,21 @@ function ArticleModal({ article, onClose }) {
 }
 
 // ── 수집 진행 패널 ────────────────────────────────────────
-function CollectProgress({ logs, onClose }) {
+function CollectProgress({ logs, rawLogs, onClose }) {
+  const [showDetail, setShowDetail] = useState(false);
+  const logEndRef = useCallback(el => { if (el) el.scrollIntoView({ behavior: "smooth" }); }, [rawLogs.length]);
   const isRunning = logs.some(l => l.status === "running");
+
   return (
     <div style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100,
       background: "#1E293B", borderTop: "2px solid #334155",
       boxShadow: "0 -8px 32px rgba(0,0,0,.3)",
-      maxHeight: 260, display: "flex", flexDirection: "column",
+      maxHeight: showDetail ? 420 : 220, display: "flex", flexDirection: "column",
+      transition: "max-height .3s",
     }}>
-      <div style={{ padding: "10px 16px 8px", borderBottom: "1px solid #334155", display: "flex", alignItems: "center", gap: 8 }}>
+      {/* 헤더 */}
+      <div style={{ padding: "10px 16px 8px", borderBottom: "1px solid #334155", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {isRunning
           ? <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#22C55E", animation: "pulse 1s infinite" }} />
           : <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#64748B" }} />
@@ -229,31 +234,54 @@ function CollectProgress({ logs, onClose }) {
           {isRunning ? "수집 중..." : "수집 완료"}
         </span>
         <div style={{ flex: 1 }} />
+        <button onClick={() => setShowDetail(v => !v)}
+          style={{ background: "#334155", border: "none", color: "#94A3B8", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, cursor: "pointer" }}>
+          {showDetail ? "간략히 ▲" : "상세 로그 ▼"}
+        </button>
         {!isRunning && (
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748B", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "0 4px" }}>×</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748B", fontSize: 20, cursor: "pointer", lineHeight: 1, padding: "0 2px", marginLeft: 4 }}>×</button>
         )}
       </div>
-      <div style={{ overflowY: "auto", padding: "10px 16px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
+
+      {/* 언론사별 상태 */}
+      <div style={{ padding: "10px 16px 10px", display: "flex", gap: 12, flexWrap: "wrap", flexShrink: 0, borderBottom: showDetail ? "1px solid #334155" : "none" }}>
         {logs.map((log, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 14, width: 18, textAlign: "center", flexShrink: 0 }}>
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 13 }}>
               {log.status === "running" ? "⏳" : log.status === "done" ? "✅" : log.status === "error" ? "❌" : "⚪"}
             </span>
-            <span style={{ color: log.status === "done" ? "#86EFAC" : log.status === "error" ? "#FCA5A5" : log.status === "running" ? "#FCD34D" : "#64748B", fontSize: 13, fontWeight: 600, minWidth: 80 }}>
+            <span style={{ color: log.status === "done" ? "#86EFAC" : log.status === "error" ? "#FCA5A5" : log.status === "running" ? "#FCD34D" : "#64748B", fontSize: 13, fontWeight: 600 }}>
               {log.name}
             </span>
-            {log.status === "done" && (
-              <span style={{ color: "#4ADE80", fontSize: 12 }}>{log.count}건 수집</span>
-            )}
-            {log.status === "error" && (
-              <span style={{ color: "#F87171", fontSize: 12 }}>오류 발생</span>
-            )}
-            {log.status === "running" && (
-              <span style={{ color: "#FDE68A", fontSize: 12 }}>수집 중...</span>
-            )}
+            {log.status === "done" && <span style={{ color: "#4ADE80", fontSize: 11 }}>{log.count}건</span>}
+            {log.status === "error" && <span style={{ color: "#F87171", fontSize: 11 }}>실패</span>}
           </div>
         ))}
       </div>
+
+      {/* 상세 로그 터미널 */}
+      {showDetail && (
+        <div style={{ overflowY: "auto", flex: 1, padding: "8px 14px 12px", fontFamily: "monospace" }}>
+          {rawLogs.map((l, i) => (
+            <div key={i} ref={i === rawLogs.length - 1 ? logEndRef : null}
+              style={{
+                fontSize: 11, lineHeight: 1.7,
+                color: l.level === "error" ? "#FCA5A5" : l.level === "warn" ? "#FCD34D" : "#94A3B8",
+              }}>
+              <span style={{ color: "#475569", marginRight: 8 }}>
+                {new Date(l.time).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
+              {l.level !== "info" && (
+                <span style={{ color: l.level === "error" ? "#F87171" : "#FBBF24", fontWeight: 700, marginRight: 6 }}>
+                  [{l.level.toUpperCase()}]
+                </span>
+              )}
+              {l.message}
+            </div>
+          ))}
+          {isRunning && <div style={{ color: "#475569", fontSize: 11, marginTop: 4 }}>▍</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -266,6 +294,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [collecting, setCollecting] = useState(null);
   const [collectLogs, setCollectLogs] = useState([]);
+  const [collectRawLogs, setCollectRawLogs] = useState([]);
   const [showProgress, setShowProgress] = useState(false);
   const [sourceFilter, setSourceFilter] = useState("all");
   const [catFilter, setCatFilter] = useState("전체");
@@ -281,22 +310,22 @@ export default function Dashboard() {
   const fetchArticles = async (d = date) => {
     setLoading(true);
     try {
-      const qs = `date=${d}${sourceFilter !== "all" ? `&source=${sourceFilter}` : ""}`;
-      const res = await fetch(`/api/articles?${qs}`);
+      // 항상 전체 기사를 가져오고 프론트에서 필터링 (언론사 탭 카운트 유지)
+      const res = await fetch(`/api/articles?date=${d}`);
       const data = await res.json();
-      // 최신순 정렬
       const sorted = (data.articles || []).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
       setArticles(sorted);
     } catch { setArticles([]); }
     setLoading(false);
   };
 
-  useEffect(() => { fetchArticles(); }, [date, sourceFilter]);
+  useEffect(() => { fetchArticles(); }, [date]);
 
   const triggerCollect = (source = "all") => {
     if (collecting) return;
     setCollecting(source);
     setCollectLogs([]);
+    setCollectRawLogs([]);
     setShowProgress(true);
 
     const es = new EventSource(`/api/collect/stream?source=${source}`);
@@ -305,7 +334,6 @@ export default function Dashboard() {
       const data = JSON.parse(e.data);
 
       if (data.type === "init") {
-        // 전체 목록 pending으로 초기화
         setCollectLogs(data.sources.map(s => ({ key: s.key, name: s.name, status: "pending" })));
       } else if (data.type === "start") {
         setCollectLogs(prev => prev.map(l => l.key === data.source ? { ...l, status: "running" } : l));
@@ -313,6 +341,8 @@ export default function Dashboard() {
         setCollectLogs(prev => prev.map(l => l.key === data.source ? { ...l, status: "done", count: data.count } : l));
       } else if (data.type === "error") {
         setCollectLogs(prev => prev.map(l => l.key === data.source ? { ...l, status: "error" } : l));
+      } else if (data.type === "log") {
+        setCollectRawLogs(prev => [...prev, { time: new Date().toISOString(), level: data.level, message: data.message }]);
       } else if (data.type === "complete") {
         es.close();
         setCollecting(null);
@@ -327,18 +357,22 @@ export default function Dashboard() {
     };
   };
 
-  // 파생 데이터
-  const breaking = articles.filter(a => a.isBreaking);
+  // 파생 데이터 — 전체 기사 기준 집계 (언론사 필터 영향 없음)
+  const allArticles = articles; // 전체 (source 필터 전 데이터가 아니라 fetch 결과 그대로)
+  const breaking = allArticles.filter(a => a.isBreaking);
 
-  const catCounts = {};
-  for (const a of articles) catCounts[a.category] = (catCounts[a.category] || 0) + 1;
-
+  // 언론사별 카운트는 항상 전체 기사 기준
   const sourceCounts = {};
-  for (const a of articles) sourceCounts[a.source] = (sourceCounts[a.source] || 0) + 1;
+  for (const a of allArticles) sourceCounts[a.source] = (sourceCounts[a.source] || 0) + 1;
+
+  // 카테고리 카운트는 현재 언론사 필터 적용된 기사 기준
+  const sourceFiltered = sourceFilter === "all" ? allArticles : allArticles.filter(a => a.source === sourceFilter);
+  const catCounts = {};
+  for (const a of sourceFiltered) catCounts[a.category] = (catCounts[a.category] || 0) + 1;
 
   const usedCats = CATEGORIES.filter(c => c === "전체" || catCounts[c]);
 
-  const filtered = articles.filter(a => {
+  const filtered = sourceFiltered.filter(a => {
     if (catFilter !== "전체" && a.category !== catFilter) return false;
     if (search && !a.title.includes(search) && !(a.summary || "").includes(search)) return false;
     return true;
@@ -388,7 +422,7 @@ export default function Dashboard() {
         <div style={{ display: "flex", gap: isMobile ? 6 : 8, marginBottom: 14, overflowX: "auto", paddingBottom: 2 }}>
           {[{ key: "all", name: "전체" }, ...sources].map(s => {
             const active = sourceFilter === s.key;
-            const cnt = s.key === "all" ? articles.length : (sourceCounts[s.key] || 0);
+            const cnt = s.key === "all" ? allArticles.length : (sourceCounts[s.key] || 0);
             return (
               <button key={s.key} onClick={() => { setSourceFilter(s.key); setCatFilter("전체"); }}
                 style={{
@@ -412,7 +446,7 @@ export default function Dashboard() {
 
         {/* 통계 카드 */}
         <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-          <StatCard icon="📰" label="수집된 기사" value={articles.length} sub={sourceFilter === "all" ? "전체" : sources.find(s => s.key === sourceFilter)?.name} accent={C.txt1} />
+          <StatCard icon="📰" label="수집된 기사" value={sourceFiltered.length} sub={sourceFilter === "all" ? "전체" : sources.find(s => s.key === sourceFilter)?.name} accent={C.txt1} />
           <StatCard icon="🚨" label="단독·속보" value={breaking.length} accent={breaking.length > 0 ? C.breaking : C.txt3} />
           <StatCard icon="📂" label="카테고리" value={Object.keys(catCounts).length} sub="개 분야" accent={C.accent} />
         </div>
@@ -504,6 +538,7 @@ export default function Dashboard() {
       {showProgress && collectLogs.length > 0 && (
         <CollectProgress
           logs={collectLogs}
+          rawLogs={collectRawLogs}
           onClose={() => setShowProgress(false)}
         />
       )}
