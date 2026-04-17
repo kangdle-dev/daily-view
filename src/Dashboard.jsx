@@ -382,17 +382,31 @@ export default function Dashboard() {
     <div style={{ fontFamily: "'Apple SD Gothic Neo','Pretendard',system-ui,sans-serif", background: C.bg, minHeight: "100vh" }}>
 
       {/* 내비 */}
-      <nav style={{ background: C.nav, height: 52, display: "flex", alignItems: "center", padding: "0 14px", position: "sticky", top: 0, zIndex: 30, gap: 8 }}>
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: 7, textDecoration: "none", flexShrink: 0 }}>
-          <div style={{ width: 24, height: 24, background: "#FFD600", borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontWeight: 900, fontSize: 12, color: "#111" }}>D</span>
+      <nav style={{ background: C.nav, height: 52, display: "flex", alignItems: "center", padding: "0 14px", position: "sticky", top: 0, zIndex: 30, gap: 6 }}>
+        {/* 로고 */}
+        <a href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 7, textDecoration: "none", flexShrink: 0, marginRight: 4 }}>
+          <div style={{ width: 26, height: 26, background: "#FFD600", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontWeight: 900, fontSize: 13, color: "#111" }}>D</span>
           </div>
           {!isMobile && <span style={{ color: "#F8FAFC", fontWeight: 800, fontSize: 14 }}>Daily View</span>}
         </a>
-        <span style={{ color: "#475569", fontSize: 12 }}>/</span>
-        <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 600 }}>수집 대시보드</span>
+        {/* 페이지 메뉴 */}
+        {[
+          { href: "/dashboard", label: isMobile ? "📰" : "대시보드", active: true },
+          { href: "/report",    label: isMobile ? "📊" : "리포트",   active: false },
+          { href: "/insight",   label: isMobile ? "💡" : "인사이트", active: false },
+        ].map(m => (
+          <a key={m.href} href={m.href} style={{
+            color: m.active ? "#fff" : "#94A3B8",
+            fontSize: isMobile ? 16 : 12, fontWeight: 700,
+            textDecoration: "none", padding: isMobile ? "6px 10px" : "6px 12px",
+            borderRadius: 7,
+            background: m.active ? "#2563EB" : "transparent",
+            transition: "background .15s",
+          }}>{m.label}</a>
+        ))}
         <div style={{ flex: 1 }} />
-        {/* 모바일: 전체수집만, 데스크탑: 개별+전체 */}
+        {/* 개별 수집 버튼 (데스크탑) */}
         {!isMobile && sources.map(s => (
           <button key={s.key} onClick={() => triggerCollect(s.key)} disabled={!!collecting}
             style={{ background: collecting === s.key ? "#334155" : "#293548", color: collecting === s.key ? "#94A3B8" : "#CBD5E1", border: "1px solid #334155", padding: "6px 10px", borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: collecting ? "not-allowed" : "pointer" }}>
