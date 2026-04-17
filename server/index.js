@@ -10,6 +10,7 @@ import { generateBriefing } from "./generate.js";
 import { startScheduler } from "./scheduler.js";
 import { collectAll, SOURCES } from "./collectors/index.js";
 import { generateReport } from "./report.js";
+import { generateInsight, generateAIInsight } from "./insight.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -195,6 +196,40 @@ app.get("/api/collect/logs", async (req, res) => {
     res.json({ date, lines });
   } catch {
     res.json({ date, lines: [] });
+  }
+});
+
+// ─── 인사이트 분석 ─────────────────────────────────────────
+// GET /api/insight?date=YYYY-MM-DD
+app.get("/api/insight", async (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+  try {
+    const data = await generateInsight(date);
+    if (!data) return res.status(404).json({ error: "해당 날짜의 수집 기사가 없습니다." });
+    res.json(data);
+  } catch (err) {
+    console.error("[insight] 오류:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/insight/ai?date=YYYY-MM-DD
+app.get("/api/insight/ai", async (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+  try {
+    const { getArticles } = await import("./articleStore.js");
+    const articles = await getArticles(date);
+    if (!articles || articles.length === 0)
+      return res.status(404).json({ error: "해당 날짜의 수집 기사가 없습니다." });
+    const text = await generateAIInsight(articles, date);
+    res.json({ text });
+  } catch (err) {
+    console.error("[insight/ai] 오류:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
