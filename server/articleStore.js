@@ -63,6 +63,14 @@ export async function getArticles(date, source = null) {
 }
 
 /**
+ * 특정 날짜에 수집된 모든 기사 URL Set (중복 수집 스킵용)
+ */
+export async function getArticleUrls(date) {
+  const articles = await getArticles(date);
+  return new Set(articles.map(a => a.url).filter(Boolean));
+}
+
+/**
  * 수집된 날짜 목록
  */
 export async function listArticleDates() {

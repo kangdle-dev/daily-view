@@ -64,7 +64,7 @@ function todayKST() {
  * 경향신문 전체 수집
  * @returns {Promise<{total: number, added: number}>}
  */
-export async function collectKhan() {
+export async function collectKhan(skipUrls = new Set()) {
   const date = todayKST();
   const articles = [];
 
@@ -76,6 +76,10 @@ export async function collectKhan() {
       console.log(`  → ${recent.length}개 (24h 이내) / 전체 ${result.items.length}개`);
 
       for (const item of recent) {
+        if (skipUrls.has(item.link || "")) {
+          console.log(`  ↩ 중복 스킵: ${(item.title || "").slice(0, 40)}`);
+          continue;
+        }
         await new Promise((r) => setTimeout(r, 400)); // 서버 부하 방지
 
         const isBreaking = /\[단독\]|\[속보\]/.test(item.title || "");

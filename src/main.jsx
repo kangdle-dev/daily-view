@@ -4,6 +4,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./Dashboard.jsx";
 import Report from "./Report.jsx";
 import Insight from "./Insight.jsx";
+import SimpleDashboard from "./SimpleDashboard.jsx";
+import NewspimAnalysis from "./NewspimAnalysis.jsx";
+import FeedsManager from "./FeedsManager.jsx";
+import Methodology from "./Methodology.jsx";
 import Login from "./Login.jsx";
 import { isLoggedIn } from "./useAuth.js";
 
@@ -22,6 +26,10 @@ createRoot(document.getElementById("root")).render(
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/report" element={<Report />} />
           <Route path="/insight" element={<Insight />} />
+          <Route path="/simple" element={<SimpleDashboard />} />
+          <Route path="/newspim" element={<NewspimAnalysis />} />
+          <Route path="/feeds" element={<FeedsManager />} />
+          <Route path="/methodology" element={<Methodology />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthGuard>

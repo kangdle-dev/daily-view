@@ -62,7 +62,7 @@ function todayKST() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
 }
 
-export async function collectChosun() {
+export async function collectChosun(skipUrls = new Set()) {
   const date = todayKST();
   const articles = [];
 
@@ -74,6 +74,10 @@ export async function collectChosun() {
       console.log(`  → ${recent.length}개 (24h 이내) / 전체 ${result.items.length}개`);
 
       for (const item of recent) {
+        if (skipUrls.has(item.link || "")) {
+          console.log(`  ↩ 중복 스킵: ${(item.title || "").slice(0, 40)}`);
+          continue;
+        }
         await new Promise((r) => setTimeout(r, 400));
 
         const isBreaking = /\[단독\]|\[속보\]/.test(item.title || "");

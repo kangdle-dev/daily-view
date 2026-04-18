@@ -288,9 +288,13 @@ export default function Insight() {
         </a>
         {/* 페이지 메뉴 */}
         {[
-          { href: "/dashboard", label: isMobile ? "📰" : "대시보드", active: false },
-          { href: "/report",    label: isMobile ? "📊" : "리포트",   active: false },
-          { href: "/insight",   label: isMobile ? "💡" : "인사이트", active: true },
+          { href: "/dashboard", label: isMobile ? "📰" : "대시보드",    active: false },
+          { href: "/report",    label: isMobile ? "📊" : "리포트",      active: false },
+          { href: "/insight",   label: isMobile ? "💡" : "인사이트",    active: true  },
+          { href: "/simple",    label: isMobile ? "🖨️" : "심플대시보드", active: false },
+          { href: "/newspim",   label: isMobile ? "📈" : "뉴스핌분석",  active: false },
+          { href: "/feeds",        label: isMobile ? "⚙️" : "피드관리",  active: false },
+          { href: "/methodology",  label: isMobile ? "📐" : "분석방법",  active: false },
         ].map(m => (
           <a key={m.href} href={m.href} style={{
             color: m.active ? "#fff" : "#94A3B8",

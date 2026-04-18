@@ -11,6 +11,8 @@ import { startScheduler } from "./scheduler.js";
 import { collectAll, SOURCES } from "./collectors/index.js";
 import { generateReport } from "./report.js";
 import { generateInsight, generateAIInsight } from "./insight.js";
+import { getCustomSources, addCustomSource, updateCustomSource, removeCustomSource } from "./feedStore.js";
+import Parser from "rss-parser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -87,9 +89,77 @@ app.post("/api/collect", async (req, res) => {
   }
 });
 
-// ─── 등록된 소스 목록 ──────────────────────────────────────
-app.get("/api/sources", (req, res) => {
-  res.json(Object.values(SOURCES).map(({ key, name }) => ({ key, name })));
+// ─── 등록된 소스 목록 (빌트인 + 커스텀) ───────────────────
+app.get("/api/sources", async (_req, res) => {
+  const customs = await getCustomSources();
+  const builtin = Object.values(SOURCES).map(({ key, name }) => ({ key, name, builtin: true }));
+  const custom  = customs.map(({ key, name }) => ({ key, name, builtin: false }));
+  res.json([...builtin, ...custom]);
+});
+
+// ─── 피드 관리 ─────────────────────────────────────────────
+// GET /api/feeds — 커스텀 소스 목록
+app.get("/api/feeds", async (_req, res) => {
+  try {
+    const sources = await getCustomSources();
+    res.json({ sources });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/feeds — 새 커스텀 소스 추가
+app.post("/api/feeds", async (req, res) => {
+  const { name, key, feeds } = req.body || {};
+  if (!name || !key) return res.status(400).json({ error: "name, key 필드가 필요합니다" });
+  const slug = key.toLowerCase().replace(/[^a-z0-9_-]/g, "-");
+  try {
+    const source = await addCustomSource({ name, key: slug, feeds: feeds || [] });
+    res.json({ ok: true, source });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// PUT /api/feeds/:id — 커스텀 소스 수정
+app.put("/api/feeds/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, key, feeds } = req.body || {};
+  try {
+    const source = await updateCustomSource(id, { name, key, feeds });
+    res.json({ ok: true, source });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE /api/feeds/:id — 커스텀 소스 삭제
+app.delete("/api/feeds/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await removeCustomSource(id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/feeds/test — RSS URL 테스트
+app.post("/api/feeds/test", async (req, res) => {
+  const { url } = req.body || {};
+  if (!url) return res.status(400).json({ error: "url 필드가 필요합니다" });
+  try {
+    const rssParser = new Parser({ timeout: 10000 });
+    const result = await rssParser.parseURL(url);
+    const sample = result.items.slice(0, 3).map(item => ({
+      title: item.title || "",
+      link: item.link || "",
+      pubDate: item.pubDate || item.isoDate || "",
+    }));
+    res.json({ ok: true, title: result.title || "", count: result.items.length, sample });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
 });
 
 // ─── 수집된 기사 조회 ──────────────────────────────────────
