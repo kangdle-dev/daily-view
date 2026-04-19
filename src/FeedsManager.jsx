@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Nav from "./Nav.jsx";
 
 const C = {
   bg: "#F1F5F9", surface: "#FFFFFF", border: "#E2E8F0",
@@ -7,14 +8,7 @@ const C = {
   nav: "#1E293B",
 };
 
-const NAV = [
-  { href: "/dashboard",  label: "대시보드",    mLabel: "📰" },
-  { href: "/report",     label: "리포트",      mLabel: "📊" },
-  { href: "/insight",    label: "인사이트",    mLabel: "💡" },
-  { href: "/simple",     label: "심플대시보드", mLabel: "🖨️" },
-  { href: "/newspim",    label: "뉴스핌분석",  mLabel: "📈" },
-  { href: "/feeds",      label: "피드관리",    mLabel: "⚙️" },
-];
+
 
 const BUILTIN_SOURCES = [
   { key: "khan",       name: "경향신문",   feeds: [{ url: "https://www.khan.co.kr/rss/rssdata/politic_news.xml", category: "정치" }] },
@@ -252,26 +246,7 @@ export default function FeedsManager() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" }}>
-      {/* NAV */}
-      <nav style={{ background: C.nav, padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", gap: 4, height: 52, position: "sticky", top: 0, zIndex: 100 }}>
-        {NAV.map(n => (
-          <a
-            key={n.href}
-            href={n.href}
-            style={{
-              color: n.href === "/feeds" ? "#FFFFFF" : "#94A3B8",
-              textDecoration: "none",
-              padding: isMobile ? "6px 8px" : "6px 14px",
-              borderRadius: 6,
-              fontSize: isMobile ? 18 : 13,
-              background: n.href === "/feeds" ? "rgba(255,255,255,0.12)" : "transparent",
-              fontWeight: n.href === "/feeds" ? 600 : 400,
-            }}
-          >
-            {isMobile ? n.mLabel : n.label}
-          </a>
-        ))}
-      </nav>
+      <Nav current="/feeds" />
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "20px 16px" : "32px 24px" }}>
         {/* 헤더 */}

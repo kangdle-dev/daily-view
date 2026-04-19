@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import Nav from "./Nav.jsx";
+import { getToken } from "./useAuth.js";
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 640);
@@ -328,7 +330,7 @@ export default function Dashboard() {
     setCollectRawLogs([]);
     setShowProgress(true);
 
-    const es = new EventSource(`/api/collect/stream?source=${source}`);
+    const es = new EventSource(`/api/collect/stream?source=${source}&token=${getToken()}`);
 
     es.onmessage = (e) => {
       const data = JSON.parse(e.data);
@@ -382,34 +384,9 @@ export default function Dashboard() {
     <div style={{ fontFamily: "'Apple SD Gothic Neo','Pretendard',system-ui,sans-serif", background: C.bg, minHeight: "100vh" }}>
 
       {/* 내비 */}
-      <nav style={{ background: C.nav, height: 52, display: "flex", alignItems: "center", padding: "0 14px", position: "sticky", top: 0, zIndex: 30, gap: 6 }}>
-        {/* 로고 */}
-        <a href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 7, textDecoration: "none", flexShrink: 0, marginRight: 4 }}>
-          <div style={{ width: 26, height: 26, background: "#FFD600", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontWeight: 900, fontSize: 13, color: "#111" }}>D</span>
-          </div>
-          {!isMobile && <span style={{ color: "#F8FAFC", fontWeight: 800, fontSize: 14 }}>Daily View</span>}
-        </a>
-        {/* 페이지 메뉴 */}
-        {[
-          { href: "/dashboard", label: isMobile ? "📰" : "대시보드",    active: true  },
-          { href: "/report",    label: isMobile ? "📊" : "리포트",      active: false },
-          { href: "/insight",   label: isMobile ? "💡" : "인사이트",    active: false },
-          { href: "/simple",    label: isMobile ? "🖨️" : "심플대시보드", active: false },
-          { href: "/newspim",   label: isMobile ? "📈" : "뉴스핌분석",  active: false },
-          { href: "/feeds",        label: isMobile ? "⚙️" : "피드관리",  active: false },
-          { href: "/methodology",  label: isMobile ? "📐" : "분석방법",  active: false },
-        ].map(m => (
-          <a key={m.href} href={m.href} style={{
-            color: m.active ? "#fff" : "#94A3B8",
-            fontSize: isMobile ? 16 : 12, fontWeight: 700,
-            textDecoration: "none", padding: isMobile ? "6px 10px" : "6px 12px",
-            borderRadius: 7,
-            background: m.active ? "#2563EB" : "transparent",
-            transition: "background .15s",
-          }}>{m.label}</a>
-        ))}
-        <div style={{ flex: 1 }} />
+      <Nav current="/dashboard" />
+      {/* 수집 액션 바 */}
+      <div style={{ background: C.nav, display: "flex", alignItems: "center", padding: "8px 14px", gap: 6, flexWrap: "wrap" }}>
         {/* 개별 수집 버튼 (데스크탑) */}
         {!isMobile && sources.map(s => (
           <button key={s.key} onClick={() => triggerCollect(s.key)} disabled={!!collecting}
@@ -421,7 +398,7 @@ export default function Dashboard() {
           style={{ background: collecting === "all" ? "#334155" : C.accent, color: "#fff", border: "none", padding: "7px 12px", borderRadius: 7, fontWeight: 700, fontSize: 12, cursor: collecting ? "not-allowed" : "pointer", flexShrink: 0, minHeight: 36 }}>
           {collecting === "all" ? "⏳" : "⚡"} {isMobile ? "수집" : "전체 수집"}
         </button>
-      </nav>
+      </div>
 
       <div style={{ maxWidth: 820, margin: "0 auto", padding: isMobile ? "14px 12px 72px" : "24px 16px 80px" }}>
 

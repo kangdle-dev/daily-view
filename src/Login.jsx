@@ -17,10 +17,12 @@ export default function Login({ onSuccess }) {
         body: JSON.stringify({ password: pw }),
       });
       if (res.ok) {
-        login();
+        const data = await res.json();
+        login(data);
         onSuccess();
       } else {
-        setError("비밀번호가 틀렸습니다");
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "비밀번호가 틀렸습니다");
         setPw("");
       }
     } catch {

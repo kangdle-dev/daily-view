@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Nav from "./Nav.jsx";
 
 const C = {
   bg: "#F1F5F9", surface: "#FFFFFF", border: "#E2E8F0",
@@ -8,15 +9,6 @@ const C = {
   purple: "#7C3AED", red: "#DC2626",
 };
 
-const NAV = [
-  { href: "/dashboard",    label: "대시보드",    mLabel: "📰" },
-  { href: "/report",       label: "리포트",      mLabel: "📊" },
-  { href: "/insight",      label: "인사이트",    mLabel: "💡" },
-  { href: "/simple",       label: "심플대시보드", mLabel: "🖨️" },
-  { href: "/newspim",      label: "뉴스핌분석",  mLabel: "📈" },
-  { href: "/feeds",        label: "피드관리",    mLabel: "⚙️" },
-  { href: "/methodology",  label: "분석방법",    mLabel: "📐" },
-];
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 640);
@@ -98,22 +90,7 @@ export default function Methodology() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Pretendard', 'Apple SD Gothic Neo', sans-serif" }}>
-      {/* NAV */}
-      <nav style={{ background: C.nav, padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", gap: 4, height: 52, position: "sticky", top: 0, zIndex: 100, overflowX: "auto" }}>
-        {NAV.map(n => (
-          <a key={n.href} href={n.href} style={{
-            color: n.href === "/methodology" ? "#FFFFFF" : "#94A3B8",
-            textDecoration: "none",
-            padding: isMobile ? "6px 8px" : "6px 14px",
-            borderRadius: 6, fontSize: isMobile ? 18 : 13,
-            background: n.href === "/methodology" ? "rgba(255,255,255,0.12)" : "transparent",
-            fontWeight: n.href === "/methodology" ? 600 : 400,
-            whiteSpace: "nowrap",
-          }}>
-            {isMobile ? n.mLabel : n.label}
-          </a>
-        ))}
-      </nav>
+      <Nav current="/methodology" />
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: isMobile ? "24px 16px" : "36px 24px" }}>
 

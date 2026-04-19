@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Nav from "./Nav.jsx";
 
 const C = {
   bg: "#F0FDF8", surface: "#FFFFFF", border: "#E2E8F0",
@@ -13,14 +14,7 @@ const SOURCE_COLORS = {
   yonhap: "#A855F7", newspim: "#14B8A6",
 };
 
-const NAV = [
-  { href: "/dashboard",  label: "대시보드",    mLabel: "📰" },
-  { href: "/report",     label: "리포트",      mLabel: "📊" },
-  { href: "/insight",    label: "인사이트",    mLabel: "💡" },
-  { href: "/simple",     label: "심플대시보드", mLabel: "🖨️" },
-  { href: "/newspim",    label: "뉴스핌분석",  mLabel: "📈" },
-  { href: "/feeds",      label: "피드관리",    mLabel: "⚙️" },
-];
+
 
 const SPECIALTY_CATS = ["증권·금융", "산업", "부동산", "경제"];
 const NEWSPIM_NAME = "뉴스핌";
@@ -194,30 +188,15 @@ export default function NewspimAnalysis() {
     <div style={{ fontFamily: "'Apple SD Gothic Neo','Pretendard',system-ui,sans-serif", background: C.bg, minHeight: "100vh" }}>
 
       {/* ── 내비 ── */}
-      <nav className="no-print" style={{ background: C.nav, height: 52, display: "flex", alignItems: "center", padding: "0 12px", position: "sticky", top: 0, zIndex: 30, gap: 3 }}>
-        <a href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 7, textDecoration: "none", flexShrink: 0, marginRight: 4 }}>
-          <div style={{ width: 26, height: 26, background: "#FFD600", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontWeight: 900, fontSize: 13, color: "#111" }}>D</span>
-          </div>
-          {!isMobile && <span style={{ color: "#F8FAFC", fontWeight: 800, fontSize: 14 }}>Daily View</span>}
-        </a>
-        {NAV.map(m => (
-          <a key={m.href} href={m.href} style={{
-            color: m.href === "/newspim" ? "#fff" : "#94A3B8",
-            fontSize: isMobile ? 15 : 12, fontWeight: 700,
-            textDecoration: "none", padding: isMobile ? "6px 7px" : "6px 10px",
-            borderRadius: 7, background: m.href === "/newspim" ? C.accent : "transparent",
-            flexShrink: 0, transition: "background .15s",
-          }}>{isMobile ? m.mLabel : m.label}</a>
-        ))}
-        <div style={{ flex: 1 }} />
+      <div className="no-print"><Nav current="/newspim" /></div>
+      <div className="no-print" style={{ background: C.nav, display: "flex", alignItems: "center", padding: "8px 14px", gap: 8, justifyContent: "flex-end" }}>
         <input type="date" value={date} max={todayStr()} onChange={e => setDate(e.target.value)}
           style={{ border: "1px solid #334155", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", outline: "none", background: "#293548", color: "#F1F5F9", minHeight: 36 }} />
         <button onClick={() => window.print()}
-          style={{ background: "#FFD600", color: "#111", border: "none", padding: "7px 14px", borderRadius: 7, fontWeight: 800, fontSize: 12, cursor: "pointer", flexShrink: 0, marginLeft: 8 }}>
+          style={{ background: "#FFD600", color: "#111", border: "none", padding: "7px 14px", borderRadius: 7, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
           🖨️ 인쇄
         </button>
-      </nav>
+      </div>
 
       {/* ── 콘텐츠 ── */}
       <div id="print-area" style={{ maxWidth: 820, margin: "0 auto", padding: isMobile ? "14px 12px 60px" : "20px 20px 60px" }}>

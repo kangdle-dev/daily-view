@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Nav from "./Nav.jsx";
 
 const C = {
   bg:       "#F1F5F9",
@@ -291,40 +292,7 @@ export default function Report() {
       background: C.bg, minHeight: "100vh",
     }}>
 
-      {/* 내비 */}
-      <nav style={{
-        background: C.nav, height: 52,
-        display: "flex", alignItems: "center",
-        padding: "0 14px", position: "sticky", top: 0, zIndex: 30, gap: 6,
-      }}>
-        {/* 로고 */}
-        <a href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 7, textDecoration: "none", flexShrink: 0, marginRight: 4 }}>
-          <div style={{ width: 26, height: 26, background: "#FFD600", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontWeight: 900, fontSize: 13, color: "#111" }}>D</span>
-          </div>
-          {!isMobile && <span style={{ color: "#F8FAFC", fontWeight: 800, fontSize: 14 }}>Daily View</span>}
-        </a>
-        {/* 페이지 메뉴 */}
-        {[
-          { href: "/dashboard", label: isMobile ? "📰" : "대시보드",    active: false },
-          { href: "/report",    label: isMobile ? "📊" : "리포트",      active: true  },
-          { href: "/insight",   label: isMobile ? "💡" : "인사이트",    active: false },
-          { href: "/simple",    label: isMobile ? "🖨️" : "심플대시보드", active: false },
-          { href: "/newspim",   label: isMobile ? "📈" : "뉴스핌분석",  active: false },
-          { href: "/feeds",        label: isMobile ? "⚙️" : "피드관리",  active: false },
-          { href: "/methodology",  label: isMobile ? "📐" : "분석방법",  active: false },
-        ].map(m => (
-          <a key={m.href} href={m.href} style={{
-            color: m.active ? "#fff" : "#94A3B8",
-            fontSize: isMobile ? 16 : 12, fontWeight: 700,
-            textDecoration: "none", padding: isMobile ? "6px 10px" : "6px 12px",
-            borderRadius: 7,
-            background: m.active ? "#2563EB" : "transparent",
-            transition: "background .15s",
-          }}>{m.label}</a>
-        ))}
-        <div style={{ flex: 1 }} />
-      </nav>
+      <Nav current="/report" />
 
       <div style={{ maxWidth: 820, margin: "0 auto", padding: isMobile ? "16px 12px 64px" : "24px 20px 80px" }}>
 

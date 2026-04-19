@@ -93,6 +93,47 @@ npm start         # NODE_ENV=production node server/index.js
 - `data/collect-logs/` — SSE 수집 로그
 - `data/` 디렉토리는 `.gitignore` 처리됨
 
+## 인증 · 권한 구조
+
+### 역할(Role)별 접근 경로
+
+| 비밀번호 | 역할 | 접근 가능 메뉴 |
+|----------|------|---------------|
+| `gamja!`  | basic   | 대시보드, 리포트, 인사이트, 심플대시보드, 분석방법 |
+| `gamja1!` | analyst | basic + 뉴스핌분석 |
+| `gamja2!` | admin   | analyst + 피드관리, 계정관리 |
+
+- 기본 계정은 첫 서버 시작 시 `data/accounts.json`에 자동 생성됨
+- 비밀번호는 `crypto.scrypt` 해시로 저장, 원문 복구 불가
+- **계정 추가·수정·삭제**: `/accounts` 메뉴 (admin 전용)
+
+### 서버 사이드 보안 계층
+
+1. **`authGuard`** — 모든 `/api` 경로에 적용 (공개: `/api/auth/login`, `/api/status`)
+2. **`requireRole('admin')`** — `/api/feeds`, `/api/accounts` 전용 미들웨어
+3. **레이트 리밋** — IP당 10회 실패 시 15분 차단 (`server/authMiddleware.js`)
+4. **SSRF 방어** — RSS 테스트 시 localhost·내부 IP 차단
+5. **CORS** — 프로덕션에서 `ALLOWED_ORIGIN` 환경변수로 제한
+6. **SSE 인증** — `EventSource`는 헤더 불가이므로 `?token=` 쿼리 파라미터로 검증
+
+### 프론트엔드 인증 흐름
+
+- `sessionStorage`에 `{ token, name, role, routes }` 저장
+- `src/main.jsx`의 `window.fetch` 패치로 모든 `/api` 호출에 `Authorization: Bearer <token>` 자동 첨부
+- `PermGuard` 컴포넌트가 허용되지 않은 경로 접근 시 `/dashboard`로 리다이렉트
+- `src/navConfig.js`의 `getNav(role)`이 역할에 맞는 메뉴만 필터링
+
+### 인증 관련 파일
+
+| 파일 | 역할 |
+|------|------|
+| `server/accountStore.js` | 계정 CRUD + scrypt 해시 |
+| `server/authMiddleware.js` | 세션 토큰(randomBytes) + 레이트 리밋 |
+| `src/useAuth.js` | 토큰·역할 sessionStorage 관리 |
+| `src/navConfig.js` | 역할별 메뉴 정의 |
+| `src/Nav.jsx` | 공유 내비 컴포넌트 (로그아웃 포함) |
+| `src/AccountManager.jsx` | 계정 관리 UI (admin 전용) |
+
 ## 배포
 
 Railway 배포 (`railway.json`): `npm install && npm run build` → `npm start`
