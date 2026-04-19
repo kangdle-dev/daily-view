@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Rss, CheckCircle2, XCircle } from "lucide-react";
 import Nav from "./Nav.jsx";
 
 const C = {
@@ -29,7 +30,7 @@ function useIsMobile() {
 }
 
 // ── 피드 행 컴포넌트 ──────────────────────────────────────
-function FeedRow({ feed, index, onChange, onRemove, onTest }) {
+function FeedRow({ feed, index, onChange, onRemove }) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
 
@@ -82,10 +83,11 @@ function FeedRow({ feed, index, onChange, onRemove, onTest }) {
         </button>
       </div>
       {testResult && (
-        <div style={{ fontSize: 12, color: testResult.ok ? C.success : C.danger, background: testResult.ok ? "#F0FDF4" : "#FEF2F2", padding: "6px 8px", borderRadius: 4 }}>
-          {testResult.ok
-            ? `✓ "${testResult.title}" — 기사 ${testResult.count}개 확인 / 샘플: ${testResult.sample?.[0]?.title?.slice(0, 40) || ""}...`
-            : `✗ ${testResult.error}`}
+        <div style={{ fontSize: 12, color: testResult.ok ? C.success : C.danger, background: testResult.ok ? "#F0FDF4" : "#FEF2F2", padding: "6px 8px", borderRadius: 4, display: "flex", alignItems: "flex-start", gap: 6 }}>
+          {testResult.ok ? <CheckCircle2 size={13} style={{ flexShrink: 0, marginTop: 1 }} /> : <XCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />}
+          <span>{testResult.ok
+            ? `"${testResult.title}" — 기사 ${testResult.count}개 확인 / 샘플: ${testResult.sample?.[0]?.title?.slice(0, 40) || ""}...`
+            : testResult.error}</span>
         </div>
       )}
     </div>
@@ -305,7 +307,7 @@ export default function FeedsManager() {
             <div style={{ color: C.txt3, fontSize: 14, padding: 20, textAlign: "center" }}>불러오는 중...</div>
           ) : customSources.length === 0 ? (
             <div style={{ background: C.surface, border: `1px dashed ${C.border}`, borderRadius: 8, padding: "32px 20px", textAlign: "center" }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>📡</div>
+              <div style={{ marginBottom: 10, color: C.txt3 }}><Rss size={32} strokeWidth={1.2} /></div>
               <div style={{ color: C.txt2, fontSize: 14, marginBottom: 4 }}>등록된 커스텀 소스가 없습니다</div>
               <div style={{ color: C.txt3, fontSize: 13 }}>위 "+ 소스 추가" 버튼으로 새 RSS 피드를 등록하세요</div>
             </div>

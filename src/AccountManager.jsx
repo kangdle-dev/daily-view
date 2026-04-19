@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { UserCircle2, Shield, ShieldCheck, ShieldAlert } from "lucide-react";
 import Nav from "./Nav.jsx";
 import { getName } from "./useAuth.js";
 
@@ -10,15 +11,16 @@ const C = {
 };
 
 const ROLES = [
-  { value: "basic",   label: "기본",   desc: "대시보드·리포트·인사이트·심플대시보드·분석방법", color: "#3B82F6" },
-  { value: "analyst", label: "분석가", desc: "기본 + 뉴스핌분석",                             color: "#8B5CF6" },
-  { value: "admin",   label: "관리자", desc: "전체 메뉴 + 피드관리·계정관리",                 color: "#EF4444" },
+  { value: "basic",   label: "기본",   desc: "대시보드·리포트·인사이트·심플대시보드·분석방법", color: "#3B82F6", Icon: Shield },
+  { value: "analyst", label: "분석가", desc: "기본 + 뉴스핌분석",                             color: "#8B5CF6", Icon: ShieldCheck },
+  { value: "admin",   label: "관리자", desc: "전체 메뉴 + 피드관리·계정관리",                 color: "#EF4444", Icon: ShieldAlert },
 ];
 
 function RoleBadge({ role }) {
   const r = ROLES.find(x => x.value === role) || ROLES[0];
   return (
-    <span style={{ background: r.color + "18", color: r.color, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: r.color + "18", color: r.color, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12 }}>
+      <r.Icon size={11} strokeWidth={2} />
       {r.label}
     </span>
   );
@@ -248,7 +250,7 @@ export default function AccountManager() {
                 <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                     <div style={{ width: 36, height: 36, borderRadius: "50%", background: ROLES.find(r=>r.value===acc.role)?.color + "20", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: 16 }}>👤</span>
+                      <UserCircle2 size={18} strokeWidth={1.5} color={ROLES.find(r=>r.value===acc.role)?.color || "#94A3B8"} />
                     </div>
                     <div>
                       <div style={{ fontWeight: 700, color: C.txt1, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>

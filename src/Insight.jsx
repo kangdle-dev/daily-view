@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Newspaper, Building2, FolderOpen, AlertCircle } from "lucide-react";
 import Nav from "./Nav.jsx";
 
 function useIsMobile() {
@@ -46,7 +47,7 @@ function Section({ title, sub, children }) {
 function StatCard({ icon, label, value, color }) {
   return (
     <div style={{ flex: 1, minWidth: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 14px", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,.04)" }}>
-      <div style={{ fontSize: 22, marginBottom: 6 }}>{icon}</div>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 6, color: color || C.txt3 }}>{icon}</div>
       <div style={{ fontSize: 26, fontWeight: 800, color: color || C.txt1, letterSpacing: -1 }}>{value}</div>
       <div style={{ fontSize: 11, color: C.txt2, marginTop: 4, fontWeight: 600 }}>{label}</div>
     </div>
@@ -316,10 +317,10 @@ export default function Insight() {
           <>
             {/* 요약 카드 */}
             <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-              <StatCard icon="📰" label="수집 기사" value={data.totalArticles} />
-              <StatCard icon="🏢" label="언론사" value={data.totalSources} />
-              <StatCard icon="📂" label="카테고리" value={data.totalCategories} />
-              <StatCard icon="🚨" label="단독·속보" value={data.breakingCount} color={data.breakingCount > 0 ? "#DC2626" : C.txt3} />
+              <StatCard icon={<Newspaper size={22} strokeWidth={1.4} />} label="수집 기사" value={data.totalArticles} />
+              <StatCard icon={<Building2 size={22} strokeWidth={1.4} />} label="언론사" value={data.totalSources} />
+              <StatCard icon={<FolderOpen size={22} strokeWidth={1.4} />} label="카테고리" value={data.totalCategories} />
+              <StatCard icon={<AlertCircle size={22} strokeWidth={1.4} />} label="단독·속보" value={data.breakingCount} color={data.breakingCount > 0 ? "#DC2626" : C.txt3} />
             </div>
 
             {/* AI 종합 분석 */}

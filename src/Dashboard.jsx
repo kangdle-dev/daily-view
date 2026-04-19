@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Zap, Loader2, Newspaper, AlertCircle, FolderOpen, CheckCircle2, XCircle, Circle, RefreshCw } from "lucide-react";
 import Nav from "./Nav.jsx";
 import { getToken } from "./useAuth.js";
 
@@ -115,7 +116,7 @@ function StatCard({ icon, label, value, sub, accent, onClick, active }) {
         transition: "all .15s",
       }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-        <span style={{ fontSize: 18 }}>{icon}</span>
+        <span style={{ color: accent || C.txt3, display: "flex" }}>{icon}</span>
         {sub && <span style={{ fontSize: 10, fontWeight: 700, color: active ? C.accent : C.txt3, background: active ? "#DBEAFE" : C.bg, padding: "2px 7px", borderRadius: 20 }}>{sub}</span>}
       </div>
       <div style={{ fontSize: 26, fontWeight: 800, color: accent || C.txt1, letterSpacing: -1, lineHeight: 1 }}>{value}</div>
@@ -250,7 +251,7 @@ function CollectProgress({ logs, rawLogs, onClose }) {
         {logs.map((log, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 13 }}>
-              {log.status === "running" ? "⏳" : log.status === "done" ? "✅" : log.status === "error" ? "❌" : "⚪"}
+              {log.status === "running" ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : log.status === "done" ? <CheckCircle2 size={13} /> : log.status === "error" ? <XCircle size={13} /> : <Circle size={13} />}
             </span>
             <span style={{ color: log.status === "done" ? "#86EFAC" : log.status === "error" ? "#FCA5A5" : log.status === "running" ? "#FCD34D" : "#64748B", fontSize: 13, fontWeight: 600 }}>
               {log.name}
@@ -382,6 +383,7 @@ export default function Dashboard() {
 
   return (
     <div style={{ fontFamily: "'Apple SD Gothic Neo','Pretendard',system-ui,sans-serif", background: C.bg, minHeight: "100vh" }}>
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
 
       {/* 내비 */}
       <Nav current="/dashboard" />
@@ -391,12 +393,15 @@ export default function Dashboard() {
         {!isMobile && sources.map(s => (
           <button key={s.key} onClick={() => triggerCollect(s.key)} disabled={!!collecting}
             style={{ background: collecting === s.key ? "#334155" : "#293548", color: collecting === s.key ? "#94A3B8" : "#CBD5E1", border: "1px solid #334155", padding: "6px 10px", borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: collecting ? "not-allowed" : "pointer" }}>
-            {collecting === s.key ? "⏳" : "⚡"} {s.name}
+            {collecting === s.key ? <Loader2 size={11} style={{ animation: "spin 1s linear infinite" }} /> : <Zap size={11} />} {s.name}
           </button>
         ))}
         <button onClick={() => triggerCollect("all")} disabled={!!collecting}
           style={{ background: collecting === "all" ? "#334155" : C.accent, color: "#fff", border: "none", padding: "7px 12px", borderRadius: 7, fontWeight: 700, fontSize: 12, cursor: collecting ? "not-allowed" : "pointer", flexShrink: 0, minHeight: 36 }}>
-          {collecting === "all" ? "⏳" : "⚡"} {isMobile ? "수집" : "전체 수집"}
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            {collecting === "all" ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <RefreshCw size={13} />}
+            {isMobile ? "수집" : "전체 수집"}
+          </span>
         </button>
       </div>
 
@@ -441,9 +446,9 @@ export default function Dashboard() {
 
         {/* 통계 카드 */}
         <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-          <StatCard icon="📰" label="수집된 기사" value={sourceFiltered.length} sub={sourceFilter === "all" ? "전체" : sources.find(s => s.key === sourceFilter)?.name} accent={C.txt1} />
-          <StatCard icon="🚨" label="단독·속보" value={breaking.length} accent={breaking.length > 0 ? C.breaking : C.txt3} />
-          <StatCard icon="📂" label="카테고리" value={Object.keys(catCounts).length} sub="개 분야" accent={C.accent} />
+          <StatCard icon={<Newspaper size={18} strokeWidth={1.6} />} label="수집된 기사" value={sourceFiltered.length} sub={sourceFilter === "all" ? "전체" : sources.find(s => s.key === sourceFilter)?.name} accent={C.txt1} />
+          <StatCard icon={<AlertCircle size={18} strokeWidth={1.6} />} label="단독·속보" value={breaking.length} accent={breaking.length > 0 ? C.breaking : C.txt3} />
+          <StatCard icon={<FolderOpen size={18} strokeWidth={1.6} />} label="카테고리" value={Object.keys(catCounts).length} sub="개 분야" accent={C.accent} />
         </div>
 
         {/* 단독·속보 목록 */}

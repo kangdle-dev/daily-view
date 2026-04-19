@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Printer } from "lucide-react";
 import Nav from "./Nav.jsx";
 
 const C = {
@@ -9,10 +10,7 @@ const C = {
   good: "#16A34A", bad: "#DC2626", neutral: "#2563EB",
 };
 
-const SOURCE_COLORS = {
-  khan: "#F97316", chosun: "#3B82F6", newstomato: "#22C55E",
-  yonhap: "#A855F7", newspim: "#14B8A6",
-};
+
 
 
 
@@ -194,7 +192,7 @@ export default function NewspimAnalysis() {
           style={{ border: "1px solid #334155", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", outline: "none", background: "#293548", color: "#F1F5F9", minHeight: 36 }} />
         <button onClick={() => window.print()}
           style={{ background: "#FFD600", color: "#111", border: "none", padding: "7px 14px", borderRadius: 7, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
-          🖨️ 인쇄
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Printer size={13} strokeWidth={2} /> 인쇄</span>
         </button>
       </div>
 
