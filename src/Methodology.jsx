@@ -103,17 +103,60 @@ export default function Methodology() {
           </p>
         </div>
 
-        {/* ── 1. 수집 파이프라인 ── */}
-        <Section title="1. 수집 파이프라인" color={C.teal}>
+        {/* ── 1. RSS 소스 및 카테고리 관리 ── */}
+        <Section title="1. RSS 소스 및 카테고리 관리" color={C.teal}>
+          <Card style={{ marginBottom: 12 }}>
+            <div style={{ fontWeight: 600, color: C.teal, fontSize: 14, marginBottom: 8 }}>소스 구조</div>
+            <p style={{ margin: "0 0 12px", color: C.txt2, fontSize: 13, lineHeight: 1.6 }}>
+              각 언론사(소스)는 여러 카테고리의 RSS 피드를 보유합니다. 관리자는 피드 관리 페이지에서 피드를 추가·편집·삭제하고, 각 피드마다 <strong>대표 카테고리(mainCategory)</strong>를 지정합니다.
+            </p>
+            <Formula style={{ background: "#F0FDF4", borderLeft: `3px solid ${C.teal}` }}>
+              경향신문 → [정치, 경제, 사회, 국제, 스포츠, 문화] RSS<br />
+              조선일보 → [정치, 경제, 사회, 국제, 문화, 스포츠, 엔터] RSS<br />
+              ... (각 피드마다 mainCategory 지정)
+            </Formula>
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 600, color: C.txt1, fontSize: 13, marginBottom: 6 }}>카테고리 매핑 흐름</div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)", gap: 8 }}>
+                {[
+                  { num: "1", label: "피드 선택", desc: "경향신문 경제 RSS" },
+                  { num: "2", label: "mainCategory 지정", desc: "\"경제\"로 설정" },
+                  { num: "3", label: "기사 수집", desc: "RSS 파싱" },
+                  { num: "4", label: "카테고리 적용", desc: "article.category = \"경제\"" },
+                ].map((item, i) => (
+                  <div key={i} style={{ background: "#F0FDF4", border: `1px solid #86EFAC`, borderRadius: 6, padding: 12, textAlign: "center" }}>
+                    <div style={{ color: C.teal, fontWeight: 700, fontSize: 18, marginBottom: 4 }}>{item.num}</div>
+                    <div style={{ fontWeight: 600, color: C.txt1, fontSize: 13, marginBottom: 3 }}>{item.label}</div>
+                    <div style={{ color: C.txt2, fontSize: 12 }}>{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div style={{ fontWeight: 600, color: C.teal, fontSize: 14, marginBottom: 8 }}>설정 관리</div>
+            <p style={{ margin: "0 0 12px", color: C.txt2, fontSize: 13, lineHeight: 1.6 }}>
+              설정 페이지에서 시스템에서 사용할 대표 카테고리 목록을 관리합니다. 기본 카테고리는 정치, 경제, 사회, 문화, 스포츠, 국제, 산업, 북한입니다.
+            </p>
+            <Formula style={{ background: "#F0FDF4", borderLeft: `3px solid ${C.teal}` }}>
+              설정 페이지 → "카테고리" 탭 → 추가/삭제 → 저장<br />
+              피드 관리 페이지 → 각 피드의 mainCategory 드롭다운에서 선택
+            </Formula>
+          </Card>
+        </Section>
+
+        {/* ── 2. 수집 파이프라인 ── */}
+        <Section title="2. 수집 파이프라인" color={C.teal}>
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
               {[
-                { step: "RSS 파싱", detail: "각 언론사의 공식 RSS 피드를 rss-parser로 읽어 24시간 이내 기사만 필터링합니다. 메타 정보(제목, URL, 발행일, 요약)를 우선 수집합니다." },
+                { step: "RSS 파싱", detail: "각 언론사의 RSS 피드를 rss-parser로 읽어 24시간 이내 기사만 필터링합니다. 메타 정보(제목, URL, 발행일, 요약)를 우선 수집합니다." },
+                { step: "카테고리 매핑", detail: "RSS 피드마다 설정된 mainCategory를 기사에 적용합니다. mainCategory가 없으면 피드의 category 필드를 사용합니다." },
                 { step: "중복 URL 스킵", detail: "수집 시작 시 당일 이미 저장된 URL Set을 구성합니다. 동일 URL은 본문 스크래핑(fetchContent) 자체를 건너뜁니다. 네트워크 비용과 서버 부하를 최소화하는 핵심 최적화입니다." },
                 { step: "본문 스크래핑", detail: "Axios + Cheerio로 기사 원문 페이지를 로드하고, 언론사별 CSS 셀렉터 목록을 순차 시도해 본문 텍스트를 추출합니다. 300ms 딜레이로 서버 부하를 조절합니다." },
-                { step: "JSON 저장", detail: "data/articles/{source}-{YYYY-MM-DD}.json에 누적 저장. 동일 날짜 파일에 URL 중복 검사 후 append합니다." },
+                { step: "JSON 저장", detail: "data/articles/{source}-{YYYY-MM-DD}.json에 누적 저장. category는 이미 매핑된 mainCategory 또는 피드의 category입니다." },
               ].map((r, i) => (
-                <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < 3 ? `1px solid ${C.border}` : "none" }}>
+                <div key={i} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < 4 ? `1px solid ${C.border}` : "none" }}>
                   <div style={{ minWidth: 28, height: 28, background: C.teal, color: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
                   <div>
                     <div style={{ fontWeight: 600, color: C.txt1, fontSize: 14, marginBottom: 3 }}>{r.step}</div>
@@ -125,8 +168,8 @@ export default function Methodology() {
           </Card>
         </Section>
 
-        {/* ── 2. 기사 유사도 그룹핑 ── */}
-        <Section title="2. 기사 유사도 그룹핑" color={C.purple}>
+        {/* ── 3. 기사 유사도 그룹핑 ── */}
+        <Section title="3. 기사 유사도 그룹핑" color={C.purple}>
           <Card style={{ marginBottom: 12 }}>
             <p style={{ margin: "0 0 12px", color: C.txt2, fontSize: 14, lineHeight: 1.6 }}>
               여러 언론사가 같은 사건을 보도한 기사를 하나의 이슈 그룹으로 묶습니다. 제목에서 추출한 키워드의 <strong>Jaccard 유사도</strong>를 사용합니다.
@@ -154,8 +197,8 @@ export default function Methodology() {
           </Card>
         </Section>
 
-        {/* ── 3. 기사 중요도 점수 ── */}
-        <Section title="3. 기사 중요도 점수 계산" color={C.gold}>
+        {/* ── 4. 기사 중요도 점수 ── */}
+        <Section title="4. 기사 중요도 점수 계산" color={C.gold}>
           <Card style={{ marginBottom: 12 }}>
             <Formula>
               점수 = 속보 + 복수보도 + 최신성 + 카테고리 + 본문유무
@@ -180,8 +223,8 @@ export default function Methodology() {
           </Card>
         </Section>
 
-        {/* ── 4. 인사이트 분석 ── */}
-        <Section title="4. 인사이트 분석 방법" color={C.teal}>
+        {/* ── 5. 인사이트 분석 ── */}
+        <Section title="5. 인사이트 분석 방법" color={C.teal}>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginBottom: 12 }}>
             <Card>
               <div style={{ fontWeight: 600, color: C.teal, fontSize: 14, marginBottom: 8 }}>키워드 빈도 분석</div>
@@ -210,8 +253,8 @@ export default function Methodology() {
           </div>
         </Section>
 
-        {/* ── 5. 신뢰도 ── */}
-        <Section title="5. 수치별 신뢰도 평가" color={C.red}>
+        {/* ── 6. 신뢰도 ── */}
+        <Section title="6. 수치별 신뢰도 평가" color={C.red}>
           <Card style={{ marginBottom: 12 }}>
             <p style={{ margin: "0 0 16px", color: C.txt2, fontSize: 13, lineHeight: 1.6 }}>
               규칙 기반 분석의 특성상 각 수치에는 고유한 한계가 있습니다. 아래 신뢰도는 "해당 수치가 실제 현실을 얼마나 정확히 반영하는가"에 대한 정성적 평가입니다.
@@ -248,8 +291,8 @@ export default function Methodology() {
           </div>
         </Section>
 
-        {/* ── 6. 뉴스핌 분석 방법 ── */}
-        <Section title="6. 뉴스핌 비교 분석 방법" color={C.purple}>
+        {/* ── 7. 뉴스핌 분석 방법 ── */}
+        <Section title="7. 뉴스핌 비교 분석 방법" color={C.purple}>
           <Card>
             <p style={{ margin: "0 0 14px", color: C.txt2, fontSize: 13, lineHeight: 1.6 }}>
               뉴스핌분석 페이지는 인사이트의 <code style={{ background: "#F1F5F9", padding: "1px 5px", borderRadius: 3 }}>sourceStats</code>와 <code style={{ background: "#F1F5F9", padding: "1px 5px", borderRadius: 3 }}>crossSourceIssues</code>를 활용해 뉴스핌과 타 언론사를 비교합니다.
@@ -273,9 +316,10 @@ export default function Methodology() {
 
         {/* 푸터 */}
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 20, marginTop: 8, color: C.txt3, fontSize: 12, textAlign: "center", lineHeight: 1.8 }}>
-          분석 알고리즘 소스: server/report.js · server/insight.js<br />
+          분석 알고리즘 소스: server/report.js · server/insight.js · server/collectors/custom.js<br />
+          설정 관리: server/feedStore.js · server/settingsStore.js<br />
           AI 모델: Claude Haiku (인사이트 요약) · Claude Sonnet (브리핑 생성)<br />
-          알고리즘 버전: 1.0 · 2026-04-18
+          알고리즘 버전: 1.1 (피드 카테고리 매핑 추가) · 2026-04-20
         </div>
       </div>
     </div>

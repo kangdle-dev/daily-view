@@ -61,14 +61,27 @@ npm start         # NODE_ENV=production node server/index.js
 | `/insight` | `Insight.jsx` | 키워드 통계, 언론사 매트릭스, AI 분석 |
 | `/simple` | `SimpleDashboard.jsx` | A4 인쇄용 임원 브리핑 요약 |
 | `/newspim` | `NewspimAnalysis.jsx` | 뉴스핌 vs 타 언론사 비교 분석 |
-| `/feeds` | `FeedsManager.jsx` | 커스텀 RSS 소스 추가·편집·삭제 |
+| `/feeds` | `FeedsManager.jsx` | 커스텀 RSS 소스 추가·편집·삭제 (각 피드마다 카테고리 매핑) |
+| `/settings` | `Settings.jsx` | 대표 카테고리 관리, 수집/브리핑 시간 설정 |
 | `/methodology` | `Methodology.jsx` | 분석 알고리즘 설명 (가중치·유사도·신뢰도) |
+| `/accounts` | `AccountManager.jsx` | 계정 생성·편집·삭제 (admin 전용) |
 
-### 수집기 구조
+### 수집기 구조 (모든 소스 커스텀화)
 
-- **빌트인**: `server/collectors/index.js`의 `SOURCES` 객체에 `{ key, name, fn }` 등록
-- **커스텀**: `data/feeds.json` → `getActiveSources()`가 런타임에 병합. `/api/feeds` CRUD로 관리
-- 모든 수집 함수 시그니처: `collectXxx(skipUrls = new Set())` — 이미 수집된 URL Set을 받아 중복 fetch 방지
+- **소스 저장소**: `data/feeds.json` — 버전 관리되는 초기 설정 (5개 언론사 + 확장 가능)
+- **피드 구조**: 각 언론사(source)는 여러 RSS 링크(feeds)를 보유
+  ```json
+  {
+    "id": "1", "key": "khan", "name": "경향신문",
+    "feeds": [
+      { "url": "https://...", "mainCategory": "정치" },
+      { "url": "https://...", "mainCategory": "경제" }
+    ]
+  }
+  ```
+- **카테고리 매핑**: 각 피드마다 `mainCategory` 지정 → 수집 시 기사의 category로 사용
+- **관리**: `/api/feeds` CRUD로 소스/피드 추가·편집·삭제
+- 수집 함수: `collectCustomSource(sourceKey, skipUrls = new Set())` — 이미 수집된 URL Set을 받아 본문 스크래핑 자체를 건너뜀
 
 ### 핵심 알고리즘 (report.js)
 
@@ -89,9 +102,11 @@ npm start         # NODE_ENV=production node server/index.js
 
 - `data/briefing-YYYY-MM-DD.json` — AI 브리핑 캐시
 - `data/articles/{source}-{YYYY-MM-DD}.json` — 언론사별 수집 기사
-- `data/feeds.json` — 커스텀 RSS 소스 목록
+- `data/feeds.json` — 초기 RSS 소스 설정 **(버전 관리됨)**
+- `data/settings.json` — 대표 카테고리·수집·브리핑 시간 설정
+- `data/accounts.json` — 계정 정보 (scrypt 해시)
 - `data/collect-logs/` — SSE 수집 로그
-- `data/` 디렉토리는 `.gitignore` 처리됨
+- `.gitignore`: `data/`는 무시하되 `!data/feeds.json`으로 feeds.json만 추적
 
 ## 인증 · 권한 구조
 
@@ -101,7 +116,7 @@ npm start         # NODE_ENV=production node server/index.js
 |----------|------|---------------|
 | `gamja!`  | basic   | 대시보드, 리포트, 인사이트, 심플대시보드, 분석방법 |
 | `gamja1!` | analyst | basic + 뉴스핌분석 |
-| `gamja2!` | admin   | analyst + 피드관리, 계정관리 |
+| `gamja2!` | admin   | analyst + 피드관리, 설정, 계정관리 |
 
 - 기본 계정은 첫 서버 시작 시 `data/accounts.json`에 자동 생성됨
 - 비밀번호는 `crypto.scrypt` 해시로 저장, 원문 복구 불가
