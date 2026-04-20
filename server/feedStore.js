@@ -45,7 +45,11 @@ export async function updateCustomSource(id, { name, key, feeds }) {
   const data = await read();
   const idx = data.sources.findIndex(s => s.id === id);
   if (idx === -1) throw new Error("소스를 찾을 수 없습니다");
-  data.sources[idx] = { ...data.sources[idx], name, key, feeds, updatedAt: new Date().toISOString() };
+  const updated = { ...data.sources[idx], updatedAt: new Date().toISOString() };
+  if (name !== undefined) updated.name = name;
+  if (key !== undefined) updated.key = key;
+  if (feeds !== undefined) updated.feeds = feeds;
+  data.sources[idx] = updated;
   await write(data);
   return data.sources[idx];
 }

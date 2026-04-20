@@ -74,7 +74,7 @@ export async function collectCustomSource(sourceKey, skipUrls = new Set()) {
         articles.push({
           source: source.key,
           sourceName: source.name,
-          category: feed.category,
+          category: feed.mainCategory || feed.category,
           isBreaking,
           title: (item.title || "").trim(),
           url,

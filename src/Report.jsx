@@ -153,8 +153,10 @@ function TopArticleCard({ article, rank, isMobile }) {
             {article.summary && (
               <div style={{
                 fontSize: 12, color: C.txt2, lineHeight: 1.65, marginBottom: 8,
-                overflow: "hidden", display: "-webkit-box",
-                WebkitLineClamp: isMobile ? 1 : 2, WebkitBoxOrient: "vertical",
+                overflow: "hidden", 
+                // display: "-webkit-box",
+                display: "none",
+                WebkitLineClamp: isMobile ? 1 : 2, WebkitBoxOrient: "vertical",                
               }}>
                 {article.summary}
               </div>

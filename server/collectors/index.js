@@ -1,21 +1,8 @@
-import { collectKhan } from "./khan.js";
-import { collectChosun } from "./chosun.js";
-import { collectNewstomato } from "./newstomato.js";
-import { collectYonhap } from "./yonhap.js";
-import { collectNewspim } from "./newspim.js";
 import { collectCustomSource } from "./custom.js";
 import { getCustomSources } from "../feedStore.js";
 import { getArticleUrls } from "../articleStore.js";
 
-export const SOURCES = {
-  khan:       { key: "khan",       name: "경향신문",   fn: collectKhan },
-  chosun:     { key: "chosun",     name: "조선일보",   fn: collectChosun },
-  newstomato: { key: "newstomato", name: "뉴스토마토", fn: collectNewstomato },
-  yonhap:     { key: "yonhap",     name: "연합뉴스",   fn: collectYonhap },
-  newspim:    { key: "newspim",    name: "뉴스핌",     fn: collectNewspim },
-};
-
-/** 빌트인 + 커스텀 소스 병합 (비동기) */
+/** 커스텀 소스만 사용 (모든 소스는 커스텀) */
 async function getActiveSources() {
   const customs = await getCustomSources();
   const customMap = {};
@@ -26,7 +13,7 @@ async function getActiveSources() {
       fn:   (skipUrls) => collectCustomSource(cs.key, skipUrls),
     };
   }
-  return { ...SOURCES, ...customMap };
+  return customMap;
 }
 
 /**

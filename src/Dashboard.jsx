@@ -82,6 +82,13 @@ function fmtTime(iso) {
   return new Date(iso).toLocaleTimeString("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit" });
 }
 
+// ── 단독/속보 타입 판별 ───────────────────────────────────
+function getBreakingType(title = "") {
+  if (/\[단독\]/.test(title)) return "exclusive";  // 단독
+  if (/\[속보\]|\(속보\)/.test(title)) return "breaking";  // 속보
+  return null;
+}
+
 // ── 카테고리 뱃지 ─────────────────────────────────────────
 function CatBadge({ category }) {
   const c = CAT_COLORS[category] || { bg: "#F8FAFC", text: "#334155", dot: "#64748B" };
@@ -128,22 +135,26 @@ function StatCard({ icon, label, value, sub, accent, onClick, active }) {
 // ── 기사 카드 ─────────────────────────────────────────────
 function ArticleCard({ article, onClick }) {
   const [hover, setHover] = useState(false);
+  const breakingType = getBreakingType(article.title);
+  const breakingColor = breakingType === "exclusive" ? "#2563EB" : "#DC2626";
+  const breakingLabel = breakingType === "exclusive" ? "단독" : "속보";
+
   return (
     <div onClick={() => onClick(article)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         background: C.surface,
-        border: article.isBreaking ? `1px solid ${C.breaking}` : `1px solid ${C.border}`,
-        borderLeft: article.isBreaking ? `4px solid ${C.breaking}` : `4px solid transparent`,
+        border: breakingType ? `1px solid ${breakingColor}` : `1px solid ${C.border}`,
+        borderLeft: breakingType ? `4px solid ${breakingColor}` : `4px solid transparent`,
         borderRadius: 10, padding: "14px 16px", cursor: "pointer",
         boxShadow: hover ? "0 4px 16px rgba(0,0,0,.08)" : "0 1px 3px rgba(0,0,0,.04)",
         transform: hover ? "translateY(-1px)" : "none",
         transition: "box-shadow .2s, transform .15s",
       }}>
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
-        {article.isBreaking && (
-          <span style={{ background: C.breaking, color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 4, whiteSpace: "nowrap" }}>단독·속보</span>
+        {breakingType && (
+          <span style={{ background: breakingColor, color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 4, whiteSpace: "nowrap" }}>{breakingLabel}</span>
         )}
         <SourceBadge source={article.source} sourceName={article.sourceName} />
         <CatBadge category={article.category} />
@@ -173,6 +184,10 @@ function ArticleModal({ article, onClose }) {
   }, [article]);
 
   if (!article) return null;
+  const breakingType = getBreakingType(article.title);
+  const breakingColor = breakingType === "exclusive" ? "#2563EB" : "#DC2626";
+  const breakingLabel = breakingType === "exclusive" ? "단독" : "속보";
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.5)", zIndex: 200, display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(3px)" }}>
       <div onClick={e => e.stopPropagation()}
@@ -182,7 +197,7 @@ function ArticleModal({ article, onClose }) {
         </div>
         <div style={{ padding: "10px 20px 16px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 10, alignItems: "center", flexWrap: "wrap" }}>
-            {article.isBreaking && <span style={{ background: C.breaking, color: "#fff", fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 5 }}>단독·속보</span>}
+            {breakingType && <span style={{ background: breakingColor, color: "#fff", fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 5 }}>{breakingLabel}</span>}
             <SourceBadge source={article.source} sourceName={article.sourceName} />
             <CatBadge category={article.category} />
             <span style={{ fontSize: 12, color: C.txt2, marginLeft: "auto", fontWeight: 500 }}>
@@ -303,11 +318,15 @@ export default function Dashboard() {
   const [catFilter, setCatFilter] = useState("전체");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
+  const [displayCount, setDisplayCount] = useState(50);
   const isMobile = useIsMobile();
 
   // 등록된 소스 목록 조회
   useEffect(() => {
-    fetch("/api/sources").then(r => r.json()).then(setSources).catch(() => {});
+    fetch("/api/sources")
+      .then(r => r.json())
+      .then(data => setSources(Array.isArray(data) ? data : []))
+      .catch(() => setSources([]));
   }, []);
 
   const fetchArticles = async (d = date) => {
@@ -315,10 +334,14 @@ export default function Dashboard() {
     try {
       // 항상 전체 기사를 가져오고 프론트에서 필터링 (언론사 탭 카운트 유지)
       const res = await fetch(`/api/articles?date=${d}`);
+      if (!res.ok) throw new Error(`API 오류: ${res.status}`);
       const data = await res.json();
       const sorted = (data.articles || []).sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
       setArticles(sorted);
-    } catch { setArticles([]); }
+    } catch (err) {
+      console.warn("기사 로드 실패:", err.message);
+      setArticles([]);
+    }
     setLoading(false);
   };
 
@@ -362,7 +385,9 @@ export default function Dashboard() {
 
   // 파생 데이터 — 전체 기사 기준 집계 (언론사 필터 영향 없음)
   const allArticles = articles; // 전체 (source 필터 전 데이터가 아니라 fetch 결과 그대로)
-  const breaking = allArticles.filter(a => a.isBreaking);
+  const exclusive = allArticles.filter(a => getBreakingType(a.title) === "exclusive");
+  const breaking = allArticles.filter(a => getBreakingType(a.title) === "breaking");
+  const allBreaking = [...exclusive, ...breaking];
 
   // 언론사별 카운트는 항상 전체 기사 기준
   const sourceCounts = {};
@@ -414,7 +439,7 @@ export default function Dashboard() {
             <p style={{ margin: "3px 0 0", fontSize: 12, color: C.txt2 }}>RSS 수집 · 24시간 이내 기사</p>
           </div>
           <input type="date" value={date} max={todayStr()}
-            onChange={e => { setDate(e.target.value); setCatFilter("전체"); setSearch(""); }}
+            onChange={e => { setDate(e.target.value); setCatFilter("전체"); setSearch(""); setDisplayCount(50); }}
             style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 11px", fontSize: 13, fontWeight: 600, fontFamily: "inherit", outline: "none", background: C.surface, color: C.txt1, minHeight: 40 }} />
         </div>
 
@@ -424,7 +449,7 @@ export default function Dashboard() {
             const active = sourceFilter === s.key;
             const cnt = s.key === "all" ? allArticles.length : (sourceCounts[s.key] || 0);
             return (
-              <button key={s.key} onClick={() => { setSourceFilter(s.key); setCatFilter("전체"); }}
+              <button key={s.key} onClick={() => { setSourceFilter(s.key); setCatFilter("전체"); setDisplayCount(50); }}
                 style={{
                   flexShrink: 0,
                   border: active ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`,
@@ -447,16 +472,38 @@ export default function Dashboard() {
         {/* 통계 카드 */}
         <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
           <StatCard icon={<Newspaper size={18} strokeWidth={1.6} />} label="수집된 기사" value={sourceFiltered.length} sub={sourceFilter === "all" ? "전체" : sources.find(s => s.key === sourceFilter)?.name} accent={C.txt1} />
-          <StatCard icon={<AlertCircle size={18} strokeWidth={1.6} />} label="단독·속보" value={breaking.length} accent={breaking.length > 0 ? C.breaking : C.txt3} />
+          <StatCard icon={<AlertCircle size={18} strokeWidth={1.6} />} label="단독·속보" value={allBreaking.length} accent={allBreaking.length > 0 ? C.breaking : C.txt3} />
           <StatCard icon={<FolderOpen size={18} strokeWidth={1.6} />} label="카테고리" value={Object.keys(catCounts).length} sub="개 분야" accent={C.accent} />
         </div>
 
-        {/* 단독·속보 목록 */}
+        {/* 단독 목록 */}
+        {exclusive.length > 0 && (
+          <div style={{ background: "#EFF6FF", border: `1px solid #BFDBFE`, borderRadius: 12, marginBottom: 16, overflow: "hidden" }}>
+            <div style={{ padding: "11px 16px", borderBottom: "1px solid #BFDBFE", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2563EB", display: "inline-block" }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#2563EB" }}>🚨 단독</span>
+              <span style={{ fontSize: 12, color: "#3B82F6" }}>{exclusive.length}건</span>
+            </div>
+            {exclusive.map((a, i) => (
+              <div key={i} onClick={() => setSelected(a)}
+                style={{ padding: "9px 14px", borderBottom: i < exclusive.length - 1 ? "1px solid #DBEAFE" : "none", cursor: "pointer", display: "flex", gap: 6, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+                  <SourceBadge source={a.source} sourceName={a.sourceName} />
+                  <CatBadge category={a.category} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.txt1, lineHeight: 1.5, width: "100%" }}>{a.title}</span>
+                </div>
+                <span style={{ fontSize: 11, color: C.txt2, flexShrink: 0 }}>{fmtTime(a.publishedAt)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 속보 목록 */}
         {breaking.length > 0 && (
           <div style={{ background: "#FEF2F2", border: `1px solid #FECACA`, borderRadius: 12, marginBottom: 20, overflow: "hidden" }}>
             <div style={{ padding: "11px 16px", borderBottom: "1px solid #FECACA", display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.breaking, display: "inline-block" }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.breaking }}>단독 · 속보</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.breaking }}>⚡ 속보</span>
               <span style={{ fontSize: 12, color: "#F87171" }}>{breaking.length}건</span>
             </div>
             {breaking.map((a, i) => (
@@ -486,7 +533,7 @@ export default function Dashboard() {
             const cnt = cat === "전체" ? articles.length : (catCounts[cat] || 0);
             const active = catFilter === cat;
             return (
-              <button key={cat} onClick={() => setCatFilter(cat)}
+              <button key={cat} onClick={() => { setCatFilter(cat); setDisplayCount(50); }}
                 style={{
                   flexShrink: 0,
                   border: active ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`,
@@ -527,8 +574,22 @@ export default function Dashboard() {
               {search && <span style={{ color: C.accent }}> · "{search}" 검색결과</span>}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {filtered.map((a, i) => <ArticleCard key={i} article={a} onClick={setSelected} />)}
+              {filtered.slice(0, displayCount).map((a, i) => <ArticleCard key={i} article={a} onClick={setSelected} />)}
             </div>
+            {filtered.length > displayCount && (
+              <div style={{ marginTop: 16, textAlign: "center" }}>
+                <button onClick={() => setDisplayCount(n => n + 50)}
+                  style={{
+                    background: C.accent, color: "#fff", border: "none", padding: "11px 24px", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: "pointer",
+                    transition: "all .15s",
+                  }}
+                  onMouseEnter={e => e.target.style.opacity = ".9"}
+                  onMouseLeave={e => e.target.style.opacity = "1"}
+                >
+                  더 보기 ({filtered.length - displayCount}개 남음)
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

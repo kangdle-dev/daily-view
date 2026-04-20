@@ -75,7 +75,7 @@ export async function generateBriefing(date) {
 - 뉴스가 없는 분야는 해당 섹션 생략`;
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-haiku-4-5",
     max_tokens: 3000,
     tools: [{ type: "web_search_20250305", name: "web_search" }],
     messages: [{ role: "user", content: prompt }],

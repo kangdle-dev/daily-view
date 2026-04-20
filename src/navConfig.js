@@ -5,6 +5,7 @@ export const ALL_NAV = [
   { href: "/simple",      label: "심플대시보드", icon: "Printer",         roles: ["basic", "analyst", "admin"] },
   { href: "/newspim",     label: "뉴스핌분석",  icon: "TrendingUp",      roles: ["analyst", "admin"] },
   { href: "/feeds",       label: "피드관리",    icon: "Rss",             roles: ["admin"] },
+  { href: "/settings",    label: "설정",        icon: "Settings",        roles: ["admin"] },
   { href: "/methodology", label: "분석방법",    icon: "BookOpen",        roles: ["basic", "analyst", "admin"] },
   { href: "/accounts",    label: "계정관리",    icon: "Users",           roles: ["admin"] },
 ];

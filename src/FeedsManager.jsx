@@ -11,13 +11,6 @@ const C = {
 
 
 
-const BUILTIN_SOURCES = [
-  { key: "khan",       name: "경향신문",   feeds: [{ url: "https://www.khan.co.kr/rss/rssdata/politic_news.xml", category: "정치" }] },
-  { key: "chosun",     name: "조선일보",   feeds: [{ url: "https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml", category: "정치" }] },
-  { key: "newstomato", name: "뉴스토마토", feeds: [{ url: "https://www.newstomato.com/rss/?cate=11", category: "정치" }] },
-  { key: "yonhap",     name: "연합뉴스",   feeds: [{ url: "https://www.yna.co.kr/rss/politics.xml", category: "정치" }] },
-  { key: "newspim",    name: "뉴스핌",     feeds: [{ url: "http://rss.newspim.com/news/category/101", category: "정치" }] },
-];
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 640);
@@ -30,7 +23,7 @@ function useIsMobile() {
 }
 
 // ── 피드 행 컴포넌트 ──────────────────────────────────────
-function FeedRow({ feed, index, onChange, onRemove }) {
+function FeedRow({ feed, index, onChange, onRemove, categories }) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
 
@@ -55,19 +48,23 @@ function FeedRow({ feed, index, onChange, onRemove }) {
 
   return (
     <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 12px", marginBottom: 8, background: "#FAFAFA" }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
         <input
           placeholder="RSS URL"
           value={feed.url}
           onChange={e => onChange(index, "url", e.target.value)}
-          style={{ flex: 1, padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
+          style={{ flex: 1, minWidth: 200, padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
         />
-        <input
-          placeholder="카테고리"
-          value={feed.category}
-          onChange={e => onChange(index, "category", e.target.value)}
-          style={{ width: 90, padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
-        />
+        <select
+          value={feed.mainCategory || ""}
+          onChange={e => onChange(index, "mainCategory", e.target.value)}
+          style={{ minWidth: 100, padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
+        >
+          <option value="">대표 카테고리 선택</option>
+          {categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
         <button
           onClick={handleTest}
           disabled={testing || !feed.url}
@@ -98,12 +95,21 @@ function FeedRow({ feed, index, onChange, onRemove }) {
 function SourceForm({ initial, onSave, onCancel }) {
   const [name, setName]   = useState(initial?.name || "");
   const [key, setKey]     = useState(initial?.key || "");
-  const [feeds, setFeeds] = useState(initial?.feeds?.length ? initial.feeds : [{ url: "", category: "" }]);
+  const [feeds, setFeeds] = useState(initial?.feeds?.length ? initial.feeds : [{ url: "", mainCategory: "" }]);
   const [saving, setSaving] = useState(false);
   const [err, setErr]     = useState("");
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    // Settings에서 mainCategories 불러오기
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(data => setCategories(data.mainCategories || []))
+      .catch(() => setCategories([]));
+  }, []);
 
   function addFeed() {
-    setFeeds(f => [...f, { url: "", category: "" }]);
+    setFeeds(f => [...f, { url: "", mainCategory: "" }]);
   }
 
   function removeFeed(i) {
@@ -153,9 +159,9 @@ function SourceForm({ initial, onSave, onCancel }) {
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <label style={{ fontSize: 12, color: C.txt2, display: "block", marginBottom: 6 }}>RSS 피드 목록</label>
+        <label style={{ fontSize: 12, color: C.txt2, display: "block", marginBottom: 6 }}>RSS 피드 목록 (각 피드마다 대표 카테고리 선택)</label>
         {feeds.map((feed, i) => (
-          <FeedRow key={i} feed={feed} index={i} onChange={changeFeed} onRemove={removeFeed} />
+          <FeedRow key={i} feed={feed} index={i} onChange={changeFeed} onRemove={removeFeed} categories={categories} />
         ))}
         <button
           onClick={addFeed}
@@ -279,23 +285,6 @@ export default function FeedsManager() {
             onCancel={() => setShowAddForm(false)}
           />
         )}
-
-        {/* 기본 소스 */}
-        <section style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: C.txt2, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            기본 소스 ({BUILTIN_SOURCES.length})
-          </h2>
-          {BUILTIN_SOURCES.map(src => (
-            <div key={src.key} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ background: "#EFF6FF", color: C.accent, fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 12 }}>기본</span>
-                <span style={{ fontWeight: 600, color: C.txt1, fontSize: 14 }}>{src.name}</span>
-                <span style={{ color: C.txt3, fontSize: 12 }}>({src.key})</span>
-              </div>
-              <span style={{ color: C.txt3, fontSize: 12 }}>{src.feeds.length}개 피드</span>
-            </div>
-          ))}
-        </section>
 
         {/* 커스텀 소스 */}
         <section>

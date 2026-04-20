@@ -8,12 +8,14 @@ import { saveCollectLog } from "./collectLogger.js";
 import { getArticles, listArticleDates } from "./articleStore.js";
 import { generateBriefing } from "./generate.js";
 import { startScheduler } from "./scheduler.js";
-import { collectAll, SOURCES } from "./collectors/index.js";
+import { collectAll } from "./collectors/index.js";
 import { generateReport } from "./report.js";
 import { generateInsight, generateAIInsight } from "./insight.js";
 import { getCustomSources, addCustomSource, updateCustomSource, removeCustomSource } from "./feedStore.js";
 import { initAccounts, authenticate, getAccounts, addAccount, updateAccount, removeAccount } from "./accountStore.js";
 import { createSession, destroySession, authGuard, requireRole, checkRateLimit, resetRateLimit } from "./authMiddleware.js";
+import { getSettings, saveSettings } from "./settingsStore.js";
+import { restartScheduler } from "./scheduler.js";
 import Parser from "rss-parser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -123,12 +125,11 @@ app.post("/api/collect", async (req, res) => {
   }
 });
 
-// ─── 소스 목록 (빌트인 + 커스텀) ──────────────────────────
+// ─── 소스 목록 (커스텀만) ────────────────────────────────
 app.get("/api/sources", async (_req, res) => {
   const customs = await getCustomSources();
-  const builtin = Object.values(SOURCES).map(({ key, name }) => ({ key, name, builtin: true }));
-  const custom  = customs.map(({ key, name }) => ({ key, name, builtin: false }));
-  res.json([...builtin, ...custom]);
+  const sources = customs.map(({ key, name }) => ({ key, name, builtin: false }));
+  res.json(sources);
 });
 
 // ─── 수집된 기사 조회 ──────────────────────────────────────
@@ -286,6 +287,27 @@ app.post("/api/feeds/test", requireRole("admin"), async (req, res) => {
       sample: result.items.slice(0, 3).map(i => ({ title: i.title || "", link: i.link || "", pubDate: i.pubDate || "" })),
     });
   } catch (err) { res.status(400).json({ ok: false, error: err.message }); }
+});
+
+// ─── 설정 관리 (admin 전용) ────────────────────────────────
+app.get("/api/settings", requireRole("admin"), async (_req, res) => {
+  try {
+    const settings = await getSettings();
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/settings", requireRole("admin"), async (req, res) => {
+  try {
+    const updated = await saveSettings(req.body);
+    // 설정 변경 후 스케줄러 재시작
+    await restartScheduler();
+    res.json({ ok: true, settings: updated });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // ─── 계정 관리 (admin 전용) ────────────────────────────────

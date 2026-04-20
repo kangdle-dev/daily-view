@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard, FileBarChart2, Lightbulb, Printer,
-  TrendingUp, Rss, BookOpen, Users, LogOut, ChevronDown,
+  TrendingUp, Rss, BookOpen, Users, LogOut, ChevronDown, Settings,
 } from "lucide-react";
 import { getNav } from "./navConfig.js";
 import { getRole, getName, logout } from "./useAuth.js";
 
 const ICON_MAP = {
   LayoutDashboard, FileBarChart2, Lightbulb, Printer,
-  TrendingUp, Rss, BookOpen, Users,
+  TrendingUp, Rss, BookOpen, Users, Settings,
 };
 
 function NavIcon({ name, size = 15 }) {

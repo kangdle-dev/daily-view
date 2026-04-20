@@ -7,6 +7,7 @@ import Insight from "./Insight.jsx";
 import SimpleDashboard from "./SimpleDashboard.jsx";
 import NewspimAnalysis from "./NewspimAnalysis.jsx";
 import FeedsManager from "./FeedsManager.jsx";
+import Settings from "./Settings.jsx";
 import Methodology from "./Methodology.jsx";
 import AccountManager from "./AccountManager.jsx";
 import Login from "./Login.jsx";
@@ -52,6 +53,9 @@ createRoot(document.getElementById("root")).render(
           } />
           <Route path="/feeds" element={
             <PermGuard route="/feeds"><FeedsManager /></PermGuard>
+          } />
+          <Route path="/settings" element={
+            <PermGuard route="/settings"><Settings /></PermGuard>
           } />
           <Route path="/accounts" element={
             <PermGuard route="/accounts"><AccountManager /></PermGuard>
