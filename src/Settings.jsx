@@ -22,9 +22,24 @@ export default function Settings() {
   // 카테고리 추가 폼
   const [newCategory, setNewCategory] = useState("");
 
+  // 데이터 관리
+  const [dataStats, setDataStats] = useState(null);
+  const [clearing, setClearing] = useState(false);
+
   useEffect(() => {
     loadSettings();
+    loadDataStats();
   }, []);
+
+  async function loadDataStats() {
+    try {
+      const res = await fetch("/api/data/stats");
+      const data = await res.json();
+      setDataStats(data);
+    } catch (err) {
+      console.error("데이터 통계 로드 실패:", err);
+    }
+  }
 
   async function loadSettings() {
     try {
@@ -89,6 +104,45 @@ export default function Settings() {
     await saveSettings(settings);
   }
 
+  async function handleClearData(type) {
+    const typeLabel = {
+      articles: "기사 데이터",
+      briefings: "브리핑 캐시",
+      logs: "수집 로그",
+      all: "모든 데이터",
+    }[type];
+
+    if (!window.confirm(`${typeLabel}를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    setClearing(true);
+    try {
+      const res = await fetch("/api/data/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "삭제 실패");
+      setMessage("✅ " + data.message);
+      await loadDataStats();
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setMessage("❌ " + err.message);
+    } finally {
+      setClearing(false);
+    }
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  }
+
   if (loading) {
     return (
       <div style={{ fontFamily: "'Apple SD Gothic Neo','Pretendard',system-ui,sans-serif", background: C.bg, minHeight: "100vh" }}>
@@ -146,6 +200,18 @@ export default function Settings() {
             }}
           >
             ⏰ 수집 설정
+          </button>
+          <button
+            onClick={() => setActiveTab("data")}
+            style={{
+              background: "none", border: "none", padding: "12px 0", paddingBottom: 10,
+              borderBottom: activeTab === "data" ? `3px solid ${C.accent}` : "none",
+              color: activeTab === "data" ? C.accent : C.txt2,
+              fontWeight: activeTab === "data" ? 700 : 500,
+              fontSize: 14, cursor: "pointer", transition: "all .2s",
+            }}
+          >
+            🗑️ 데이터 관리
           </button>
         </div>
 
@@ -315,6 +381,68 @@ export default function Settings() {
             >
               {saving ? "저장 중..." : "저장"}
             </button>
+          </div>
+        )}
+
+        {/* 탭 3: 데이터 관리 */}
+        {activeTab === "data" && dataStats && (
+          <div>
+            <div style={{ marginBottom: 24 }}>
+              <p style={{ margin: "0 0 16px", fontSize: 13, color: C.txt2, lineHeight: 1.6 }}>
+                수집된 기사 데이터, 생성된 브리핑, 로그를 확인하고 삭제할 수 있습니다.
+              </p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
+                {[
+                  { key: "articles", label: "기사 데이터", icon: "📰", stats: dataStats.articles },
+                  { key: "briefings", label: "브리핑 캐시", icon: "✨", stats: dataStats.briefings },
+                  { key: "logs", label: "수집 로그", icon: "📋", stats: dataStats.logs },
+                ].map(item => (
+                  <div key={item.key} style={{
+                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: 16,
+                  }}>
+                    <div style={{ fontSize: 24, marginBottom: 8 }}>{item.icon}</div>
+                    <div style={{ fontWeight: 600, color: C.txt1, fontSize: 14, marginBottom: 6 }}>{item.label}</div>
+                    <div style={{ fontSize: 13, color: C.txt2, marginBottom: 12 }}>
+                      {item.stats.count}개 파일<br />
+                      {formatBytes(item.stats.size)}
+                    </div>
+                    <button
+                      onClick={() => handleClearData(item.key)}
+                      disabled={clearing || item.stats.count === 0}
+                      style={{
+                        width: "100%", padding: "8px 0", background: C.danger, color: "#fff",
+                        border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                        opacity: clearing || item.stats.count === 0 ? 0.5 : 1,
+                      }}
+                    >
+                      {clearing ? "삭제 중..." : "삭제"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background: "#FEF2F2", border: `1px solid #FECACA`, borderRadius: 8, padding: 14, marginBottom: 20 }}>
+                <div style={{ fontWeight: 600, color: C.danger, fontSize: 13, marginBottom: 8 }}>전체 용량</div>
+                <div style={{ color: C.txt2, fontSize: 14, fontWeight: 700 }}>{formatBytes(dataStats.total.size)}</div>
+              </div>
+
+              <button
+                onClick={() => handleClearData("all")}
+                disabled={clearing || dataStats.total.size === 0}
+                style={{
+                  width: "100%", padding: "12px 0", background: C.danger, color: "#fff",
+                  border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
+                  opacity: clearing || dataStats.total.size === 0 ? 0.5 : 1,
+                }}
+              >
+                {clearing ? "삭제 중..." : "모든 데이터 삭제"}
+              </button>
+
+              <div style={{ marginTop: 16, padding: "12px", background: "#F0F9FF", border: `1px solid #BFDBFE`, borderRadius: 6, fontSize: 12, color: "#0C4A6E", lineHeight: 1.6 }}>
+                💡 <strong>팁:</strong> 모든 데이터를 삭제한 후 대시보드의 "수동 수집" 버튼으로 새로운 카테고리 매핑으로 기사를 다시 수집할 수 있습니다.
+              </div>
+            </div>
           </div>
         )}
       </div>

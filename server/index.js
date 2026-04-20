@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getBriefing, saveBriefing, listDates } from "./store.js";
@@ -307,6 +308,101 @@ app.post("/api/settings", requireRole("admin"), async (req, res) => {
     res.json({ ok: true, settings: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── 데이터 관리 (admin 전용) ────────────────────────────────
+app.get("/api/data/stats", requireRole("admin"), async (_req, res) => {
+  try {
+    const dataDir = path.join(__dirname, "..", "data");
+
+    let stats = {
+      articles: { count: 0, size: 0 },
+      briefings: { count: 0, size: 0 },
+      logs: { count: 0, size: 0 },
+      total: { size: 0 },
+    };
+
+    // articles 폴더
+    try {
+      const articlesDir = path.join(dataDir, "articles");
+      const files = fs.readdirSync(articlesDir);
+      stats.articles.count = files.length;
+      files.forEach(file => {
+        const size = fs.statSync(path.join(articlesDir, file)).size;
+        stats.articles.size += size;
+        stats.total.size += size;
+      });
+    } catch (e) {}
+
+    // briefing 파일들
+    try {
+      const files = fs.readdirSync(dataDir).filter(f => f.startsWith("briefing-") && f.endsWith(".json"));
+      stats.briefings.count = files.length;
+      files.forEach(file => {
+        const size = fs.statSync(path.join(dataDir, file)).size;
+        stats.briefings.size += size;
+        stats.total.size += size;
+      });
+    } catch (e) {}
+
+    // logs 폴더
+    try {
+      const logsDir = path.join(dataDir, "logs");
+      const files = fs.readdirSync(logsDir);
+      stats.logs.count = files.length;
+      files.forEach(file => {
+        const size = fs.statSync(path.join(logsDir, file)).size;
+        stats.logs.size += size;
+        stats.total.size += size;
+      });
+    } catch (e) {}
+
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/data/clear", requireRole("admin"), async (req, res) => {
+  try {
+    const { type } = req.body; // "articles", "briefings", "logs", "all"
+    const dataDir = path.join(__dirname, "..", "data");
+
+    if (type === "articles" || type === "all") {
+      const articlesDir = path.join(dataDir, "articles");
+      if (fs.existsSync(articlesDir)) {
+        const files = fs.readdirSync(articlesDir);
+        for (const file of files) {
+          fs.unlinkSync(path.join(articlesDir, file));
+        }
+      }
+      console.log("[admin] 기사 데이터 삭제 완료");
+    }
+
+    if (type === "briefings" || type === "all") {
+      const files = fs.readdirSync(dataDir).filter(f => f.startsWith("briefing-") && f.endsWith(".json"));
+      for (const file of files) {
+        fs.unlinkSync(path.join(dataDir, file));
+      }
+      console.log("[admin] 브리핑 캐시 삭제 완료");
+    }
+
+    if (type === "logs" || type === "all") {
+      const logsDir = path.join(dataDir, "logs");
+      if (fs.existsSync(logsDir)) {
+        const files = fs.readdirSync(logsDir);
+        for (const file of files) {
+          fs.unlinkSync(path.join(logsDir, file));
+        }
+      }
+      console.log("[admin] 수집 로그 삭제 완료");
+    }
+
+    res.json({ ok: true, message: `${type === "all" ? "전체" : type} 데이터 삭제 완료` });
+  } catch (err) {
+    console.error("[admin data clear error]", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
