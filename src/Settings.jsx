@@ -24,7 +24,9 @@ export default function Settings() {
 
   // 데이터 관리
   const [dataStats, setDataStats] = useState(null);
-  const [clearing, setClearing] = useState(false);
+  const [dataFiles, setDataFiles] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState({ articles: [], briefings: [], logs: [] });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -33,11 +35,15 @@ export default function Settings() {
 
   async function loadDataStats() {
     try {
-      const res = await fetch("/api/data/stats");
-      const data = await res.json();
-      setDataStats(data);
+      const statsRes = await fetch("/api/data/stats");
+      const statsData = await statsRes.json();
+      setDataStats(statsData);
+
+      const filesRes = await fetch("/api/data/files");
+      const filesData = await filesRes.json();
+      setDataFiles(filesData);
     } catch (err) {
-      console.error("데이터 통계 로드 실패:", err);
+      console.error("데이터 로드 실패:", err);
     }
   }
 
@@ -104,38 +110,66 @@ export default function Settings() {
     await saveSettings(settings);
   }
 
-  async function handleClearData(type) {
-    const typeLabel = {
-      articles: "기사 데이터",
-      briefings: "브리핑 캐시",
-      logs: "수집 로그",
-      all: "모든 데이터",
-    }[type];
+  function toggleFileSelection(type, fileName) {
+    setSelectedFiles(prev => {
+      const updated = { ...prev };
+      if (updated[type].includes(fileName)) {
+        updated[type] = updated[type].filter(f => f !== fileName);
+      } else {
+        updated[type] = [...updated[type], fileName];
+      }
+      return updated;
+    });
+  }
 
-    if (!window.confirm(`${typeLabel}를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+  function toggleSelectAll(type) {
+    setSelectedFiles(prev => {
+      const updated = { ...prev };
+      const fileNames = (dataFiles?.[type] || []).map(f => f.name);
+      if (updated[type].length === fileNames.length) {
+        updated[type] = [];
+      } else {
+        updated[type] = fileNames;
+      }
+      return updated;
+    });
+  }
+
+  async function handleDeleteSelectedFiles() {
+    const totalSelected = selectedFiles.articles.length + selectedFiles.briefings.length + selectedFiles.logs.length;
+    if (totalSelected === 0) {
+      setMessage("⚠️ 선택된 파일이 없습니다");
       return;
     }
 
-    setClearing(true);
+    if (!window.confirm(`${totalSelected}개 파일을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    setDeleting(true);
     try {
-      const res = await fetch("/api/data/clear", {
+      const res = await fetch("/api/data/delete-files", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({ files: selectedFiles }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "삭제 실패");
-      setMessage("✅ " + data.message);
+
+      const { deleted } = data;
+      const total = deleted.articles + deleted.briefings + deleted.logs;
+      setMessage(`✅ ${total}개 파일 삭제 완료`);
+      setSelectedFiles({ articles: [], briefings: [], logs: [] });
       await loadDataStats();
       setTimeout(() => setMessage(""), 3000);
     } catch (err) {
       setMessage("❌ " + err.message);
     } finally {
-      setClearing(false);
+      setDeleting(false);
     }
   }
 
-  function formatBytes(bytes) {
+function formatBytes(bytes) {
     if (bytes === 0) return "0 B";
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB"];
@@ -385,62 +419,152 @@ export default function Settings() {
         )}
 
         {/* 탭 3: 데이터 관리 */}
-        {activeTab === "data" && dataStats && (
+        {activeTab === "data" && dataStats && dataFiles && (
           <div>
             <div style={{ marginBottom: 24 }}>
               <p style={{ margin: "0 0 16px", fontSize: 13, color: C.txt2, lineHeight: 1.6 }}>
-                수집된 기사 데이터, 생성된 브리핑, 로그를 확인하고 삭제할 수 있습니다.
+                수집된 기사 데이터, 생성된 브리핑, 로그 파일을 확인하고 선택하여 삭제할 수 있습니다.
               </p>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-                {[
-                  { key: "articles", label: "기사 데이터", icon: "📰", stats: dataStats.articles },
-                  { key: "briefings", label: "브리핑 캐시", icon: "✨", stats: dataStats.briefings },
-                  { key: "logs", label: "수집 로그", icon: "📋", stats: dataStats.logs },
-                ].map(item => (
-                  <div key={item.key} style={{
-                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: 16,
-                  }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>{item.icon}</div>
-                    <div style={{ fontWeight: 600, color: C.txt1, fontSize: 14, marginBottom: 6 }}>{item.label}</div>
-                    <div style={{ fontSize: 13, color: C.txt2, marginBottom: 12 }}>
-                      {item.stats.count}개 파일<br />
-                      {formatBytes(item.stats.size)}
-                    </div>
-                    <button
-                      onClick={() => handleClearData(item.key)}
-                      disabled={clearing || item.stats.count === 0}
-                      style={{
-                        width: "100%", padding: "8px 0", background: C.danger, color: "#fff",
-                        border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                        opacity: clearing || item.stats.count === 0 ? 0.5 : 1,
-                      }}
-                    >
-                      {clearing ? "삭제 중..." : "삭제"}
-                    </button>
+              {/* 총 선택 현황 */}
+              {(selectedFiles.articles.length + selectedFiles.briefings.length + selectedFiles.logs.length) > 0 && (
+                <div style={{ background: "#FEF2F2", border: `1px solid #FECACA`, borderRadius: 8, padding: 14, marginBottom: 16 }}>
+                  <div style={{ color: C.danger, fontSize: 13, fontWeight: 600 }}>
+                    선택된 파일: {selectedFiles.articles.length + selectedFiles.briefings.length + selectedFiles.logs.length}개
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* 기사 데이터 테이블 */}
+              <div style={{ marginBottom: 24, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+                <div style={{ padding: "12px 14px", background: C.bg, borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 13, color: C.txt1, display: "flex", alignItems: "center", gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.articles.length === dataFiles.articles.length && dataFiles.articles.length > 0}
+                    onChange={() => toggleSelectAll("articles")}
+                    style={{ width: 16, height: 16, cursor: "pointer" }}
+                  />
+                  📰 기사 데이터 ({dataFiles.articles.length}개 파일, {formatBytes(dataStats.articles.size)})
+                </div>
+                {dataFiles.articles.length === 0 ? (
+                  <div style={{ padding: "16px", color: C.txt3, fontSize: 13, textAlign: "center" }}>파일 없음</div>
+                ) : (
+                  <div>
+                    {dataFiles.articles.map(file => (
+                      <div key={file.name} style={{
+                        padding: "10px 14px", borderBottom: `1px solid ${C.border}`,
+                        display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedFiles.articles.includes(file.name)}
+                          onChange={() => toggleFileSelection("articles", file.name)}
+                          style={{ width: 16, height: 16, cursor: "pointer" }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: C.txt1, fontWeight: 500 }}>{file.name}</div>
+                          <div style={{ color: C.txt3, fontSize: 12, marginTop: 2 }}>
+                            {formatBytes(file.size)} • {new Date(file.modified).toLocaleString('ko-KR')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div style={{ background: "#FEF2F2", border: `1px solid #FECACA`, borderRadius: 8, padding: 14, marginBottom: 20 }}>
-                <div style={{ fontWeight: 600, color: C.danger, fontSize: 13, marginBottom: 8 }}>전체 용량</div>
-                <div style={{ color: C.txt2, fontSize: 14, fontWeight: 700 }}>{formatBytes(dataStats.total.size)}</div>
+              {/* 브리핑 캐시 테이블 */}
+              <div style={{ marginBottom: 24, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+                <div style={{ padding: "12px 14px", background: C.bg, borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 13, color: C.txt1, display: "flex", alignItems: "center", gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.briefings.length === dataFiles.briefings.length && dataFiles.briefings.length > 0}
+                    onChange={() => toggleSelectAll("briefings")}
+                    style={{ width: 16, height: 16, cursor: "pointer" }}
+                  />
+                  ✨ 브리핑 캐시 ({dataFiles.briefings.length}개 파일, {formatBytes(dataStats.briefings.size)})
+                </div>
+                {dataFiles.briefings.length === 0 ? (
+                  <div style={{ padding: "16px", color: C.txt3, fontSize: 13, textAlign: "center" }}>파일 없음</div>
+                ) : (
+                  <div>
+                    {dataFiles.briefings.map(file => (
+                      <div key={file.name} style={{
+                        padding: "10px 14px", borderBottom: `1px solid ${C.border}`,
+                        display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedFiles.briefings.includes(file.name)}
+                          onChange={() => toggleFileSelection("briefings", file.name)}
+                          style={{ width: 16, height: 16, cursor: "pointer" }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: C.txt1, fontWeight: 500 }}>{file.name}</div>
+                          <div style={{ color: C.txt3, fontSize: 12, marginTop: 2 }}>
+                            {formatBytes(file.size)} • {new Date(file.modified).toLocaleString('ko-KR')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
+              {/* 수집 로그 테이블 */}
+              <div style={{ marginBottom: 24, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
+                <div style={{ padding: "12px 14px", background: C.bg, borderBottom: `1px solid ${C.border}`, fontWeight: 700, fontSize: 13, color: C.txt1, display: "flex", alignItems: "center", gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.logs.length === dataFiles.logs.length && dataFiles.logs.length > 0}
+                    onChange={() => toggleSelectAll("logs")}
+                    style={{ width: 16, height: 16, cursor: "pointer" }}
+                  />
+                  📋 수집 로그 ({dataFiles.logs.length}개 파일, {formatBytes(dataStats.logs.size)})
+                </div>
+                {dataFiles.logs.length === 0 ? (
+                  <div style={{ padding: "16px", color: C.txt3, fontSize: 13, textAlign: "center" }}>파일 없음</div>
+                ) : (
+                  <div>
+                    {dataFiles.logs.map(file => (
+                      <div key={file.name} style={{
+                        padding: "10px 14px", borderBottom: `1px solid ${C.border}`,
+                        display: "flex", alignItems: "center", gap: 10, fontSize: 13,
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedFiles.logs.includes(file.name)}
+                          onChange={() => toggleFileSelection("logs", file.name)}
+                          style={{ width: 16, height: 16, cursor: "pointer" }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: C.txt1, fontWeight: 500 }}>{file.name}</div>
+                          <div style={{ color: C.txt3, fontSize: 12, marginTop: 2 }}>
+                            {formatBytes(file.size)} • {new Date(file.modified).toLocaleString('ko-KR')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 삭제 버튼 */}
               <button
-                onClick={() => handleClearData("all")}
-                disabled={clearing || dataStats.total.size === 0}
+                onClick={handleDeleteSelectedFiles}
+                disabled={deleting || (selectedFiles.articles.length + selectedFiles.briefings.length + selectedFiles.logs.length === 0)}
                 style={{
                   width: "100%", padding: "12px 0", background: C.danger, color: "#fff",
                   border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
-                  opacity: clearing || dataStats.total.size === 0 ? 0.5 : 1,
+                  opacity: deleting || (selectedFiles.articles.length + selectedFiles.briefings.length + selectedFiles.logs.length === 0) ? 0.5 : 1,
+                  transition: "all .2s",
                 }}
               >
-                {clearing ? "삭제 중..." : "모든 데이터 삭제"}
+                {deleting ? "삭제 중..." : "선택한 파일 삭제"}
               </button>
 
               <div style={{ marginTop: 16, padding: "12px", background: "#F0F9FF", border: `1px solid #BFDBFE`, borderRadius: 6, fontSize: 12, color: "#0C4A6E", lineHeight: 1.6 }}>
-                💡 <strong>팁:</strong> 모든 데이터를 삭제한 후 대시보드의 "수동 수집" 버튼으로 새로운 카테고리 매핑으로 기사를 다시 수집할 수 있습니다.
+                💡 <strong>팁:</strong> 삭제 후 대시보드의 "수동 수집" 버튼으로 새로운 카테고리 매핑으로 기사를 다시 수집할 수 있습니다.
               </div>
             </div>
           </div>

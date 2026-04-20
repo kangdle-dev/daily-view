@@ -364,6 +364,97 @@ app.get("/api/data/stats", requireRole("admin"), async (_req, res) => {
   }
 });
 
+app.get("/api/data/files", requireRole("admin"), async (_req, res) => {
+  try {
+    const dataDir = path.join(__dirname, "..", "data");
+
+    let files = {
+      articles: [],
+      briefings: [],
+      logs: [],
+    };
+
+    // articles 폴더
+    try {
+      const articlesDir = path.join(dataDir, "articles");
+      const fileList = fs.readdirSync(articlesDir);
+      files.articles = fileList.map(file => {
+        const stat = fs.statSync(path.join(articlesDir, file));
+        return { name: file, size: stat.size, modified: stat.mtime };
+      }).sort((a, b) => b.modified - a.modified);
+    } catch (e) {}
+
+    // briefing 파일들
+    try {
+      const fileList = fs.readdirSync(dataDir).filter(f => f.startsWith("briefing-") && f.endsWith(".json"));
+      files.briefings = fileList.map(file => {
+        const stat = fs.statSync(path.join(dataDir, file));
+        return { name: file, size: stat.size, modified: stat.mtime };
+      }).sort((a, b) => b.modified - a.modified);
+    } catch (e) {}
+
+    // logs 폴더
+    try {
+      const logsDir = path.join(dataDir, "logs");
+      const fileList = fs.readdirSync(logsDir);
+      files.logs = fileList.map(file => {
+        const stat = fs.statSync(path.join(logsDir, file));
+        return { name: file, size: stat.size, modified: stat.mtime };
+      }).sort((a, b) => b.modified - a.modified);
+    } catch (e) {}
+
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/data/delete-files", requireRole("admin"), async (req, res) => {
+  try {
+    const { files } = req.body; // { articles: [], briefings: [], logs: [] }
+    const dataDir = path.join(__dirname, "..", "data");
+    let deleted = { articles: 0, briefings: 0, logs: 0 };
+
+    // articles 폴더
+    if (files.articles && Array.isArray(files.articles)) {
+      const articlesDir = path.join(dataDir, "articles");
+      for (const file of files.articles) {
+        try {
+          fs.unlinkSync(path.join(articlesDir, file));
+          deleted.articles++;
+        } catch (e) {}
+      }
+    }
+
+    // briefing 파일들
+    if (files.briefings && Array.isArray(files.briefings)) {
+      for (const file of files.briefings) {
+        try {
+          fs.unlinkSync(path.join(dataDir, file));
+          deleted.briefings++;
+        } catch (e) {}
+      }
+    }
+
+    // logs 폴더
+    if (files.logs && Array.isArray(files.logs)) {
+      const logsDir = path.join(dataDir, "logs");
+      for (const file of files.logs) {
+        try {
+          fs.unlinkSync(path.join(logsDir, file));
+          deleted.logs++;
+        } catch (e) {}
+      }
+    }
+
+    console.log(`[admin] 파일 삭제: 기사 ${deleted.articles}개, 브리핑 ${deleted.briefings}개, 로그 ${deleted.logs}개`);
+    res.json({ ok: true, deleted });
+  } catch (err) {
+    console.error("[delete-files error]", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post("/api/data/clear", requireRole("admin"), async (req, res) => {
   try {
     const { type } = req.body; // "articles", "briefings", "logs", "all"
