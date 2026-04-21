@@ -4,7 +4,10 @@ import { load } from "cheerio";
 import { saveArticles } from "../articleStore.js";
 import { getCustomSources } from "../feedStore.js";
 
-const parser = new Parser({ timeout: 10000 });
+const parser = new Parser({
+  timeout: 20000,
+  headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36" }
+});
 
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",

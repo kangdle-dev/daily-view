@@ -374,7 +374,10 @@ app.post("/api/feeds/test", requireRole("admin"), async (req, res) => {
   }
 
   try {
-    const rssParser = new Parser({ timeout: 10000 });
+    const rssParser = new Parser({
+      timeout: 20000,
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
+    });
     const result = await rssParser.parseURL(url);
     res.json({
       ok: true, title: result.title || "",
