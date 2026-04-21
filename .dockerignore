@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.example
+.DS_Store
+*.log
+data/articles
+data/logs
+data/briefing-*.json
+.claude
+.vscode
+README.md

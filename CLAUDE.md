@@ -28,6 +28,31 @@ npm start         # NODE_ENV=production node server/index.js
 
 개발 시 두 터미널에서 `npm run dev`와 `npm run server`를 동시에 실행해야 한다.
 
+## Docker (Railway 환경 동일하게 테스트)
+
+로컬에서 Linux 환경(Railway와 동일)으로 테스트:
+
+```bash
+# 1️⃣ 개발 모드로 실행 (추천)
+docker-compose up
+
+# 2️⃣ 프로덕션 모드 빌드 및 실행
+docker build -t daily-view .
+docker run -p 3001:3001 daily-view
+
+# 3️⃣ 컨테이너 내부 Shell 접근
+docker-compose exec app sh
+```
+
+**접속:**
+- 백엔드: http://localhost:3001
+- 프론트엔드: http://localhost:5173
+
+**Windows/Linux 환경 차이 제거:**
+- ✅ donga.com RSS 문제를 로컬에서 재현 가능
+- ✅ Railway 배포 전 정확한 테스트
+- ✅ 환경 일관성 보장
+
 ## 환경 변수
 
 `.env` (`.env.example` 참고):
