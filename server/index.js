@@ -24,6 +24,100 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const IS_PROD = process.env.NODE_ENV === "production";
 
+// ─── feeds.json 초기화 (Railway 배포 시 자동 생성) ────────
+const dataDir = path.join(__dirname, "..", "data");
+const feedsPath = path.join(dataDir, "feeds.json");
+const DEFAULT_FEEDS = {
+  sources: [
+    {
+      id: "1",
+      key: "khan",
+      name: "경향신문",
+      feeds: [
+        { url: "https://www.khan.co.kr/rss/rssdata/politic_news.xml", category: "정치", mainCategory: "정치" },
+        { url: "https://www.khan.co.kr/rss/rssdata/economy_news.xml", mainCategory: "경제" },
+        { url: "https://www.khan.co.kr/rss/rssdata/society_news.xml", mainCategory: "사회" },
+        { url: "https://www.khan.co.kr/rss/rssdata/kh_world.xml", mainCategory: "국제" },
+        { url: "https://www.khan.co.kr/rss/rssdata/kh_sports.xml", mainCategory: "스포츠" },
+        { url: "https://www.khan.co.kr/rss/rssdata/culture_news.xml", mainCategory: "문화" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "2",
+      key: "chosun",
+      name: "조선일보",
+      feeds: [
+        { url: "https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml", category: "정치", mainCategory: "정치" },
+        { url: "https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml", mainCategory: "경제" },
+        { url: "https://www.chosun.com/arc/outboundfeeds/rss/category/national/?outputType=xml", mainCategory: "사회" },
+        { url: "https://www.chosun.com/arc/outboundfeeds/rss/category/international/?outputType=xml", mainCategory: "국제" },
+        { url: "https://www.chosun.com/arc/outboundfeeds/rss/category/culture-life/?outputType=xml", mainCategory: "문화" },
+        { url: "https://www.chosun.com/arc/outboundfeeds/rss/category/sports/?outputType=xml", mainCategory: "스포츠" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "3",
+      key: "newstomato",
+      name: "뉴스토마토",
+      feeds: [
+        { url: "https://www.newstomato.com/rss/?cate=11", category: "정치", mainCategory: "정치" },
+        { url: "https://www.newstomato.com/rss/?cate=12", mainCategory: "증권.금융" },
+        { url: "https://www.newstomato.com/rss/?cate=14", mainCategory: "산업" },
+        { url: "https://www.newstomato.com/rss/?cate=16", mainCategory: "부동산" },
+        { url: "https://www.newstomato.com/rss/?cate=17", mainCategory: "문화" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "4",
+      key: "yonhap",
+      name: "연합뉴스",
+      feeds: [
+        { url: "https://www.yna.co.kr/rss/politics.xml", category: "정치", mainCategory: "정치" },
+        { url: "https://www.yna.co.kr/rss/northkorea.xml", mainCategory: "북한" },
+        { url: "https://www.yna.co.kr/rss/economy.xml", mainCategory: "경제" },
+        { url: "https://www.yna.co.kr/rss/market.xml", mainCategory: "증권.금융" },
+        { url: "https://www.yna.co.kr/rss/industry.xml", mainCategory: "산업" },
+        { url: "https://www.yna.co.kr/rss/society.xml", mainCategory: "사회" },
+        { url: "https://www.yna.co.kr/rss/international.xml", mainCategory: "국제" },
+        { url: "https://www.yna.co.kr/rss/entertainment.xml", mainCategory: "문화" },
+        { url: "https://www.yna.co.kr/rss/sports.xml", mainCategory: "스포츠" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "5",
+      key: "newspim",
+      name: "뉴스핌",
+      feeds: [
+        { url: "http://rss.newspim.com/news/category/101", category: "정치", mainCategory: "정치" },
+        { url: "http://rss.newspim.com/news/category/103", mainCategory: "경제" },
+        { url: "http://rss.newspim.com/news/category/102", mainCategory: "사회" },
+        { url: "http://rss.newspim.com/news/category/107", mainCategory: "국제" },
+        { url: "http://rss.newspim.com/news/category/106", mainCategory: "산업" },
+        { url: "http://rss.newspim.com/news/category/105", mainCategory: "증권.금융" },
+        { url: "http://rss.newspim.com/news/category/104", mainCategory: "부동산" },
+        { url: "http://rss.newspim.com/news/category/108", mainCategory: "전국" },
+        { url: "http://rss.newspim.com/news/category/110", mainCategory: "문화" },
+        { url: "http://rss.newspim.com/news/category/111", mainCategory: "스포츠" }
+      ],
+      createdAt: new Date().toISOString()
+    }
+  ]
+};
+
+if (!fs.existsSync(feedsPath)) {
+  try {
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(feedsPath, JSON.stringify(DEFAULT_FEEDS, null, 2));
+    console.log("[init] ✅ feeds.json 생성 완료");
+  } catch (err) {
+    console.error("[init] feeds.json 생성 실패:", err.message);
+  }
+}
+
 // ─── 보안: CORS (프로덕션에서는 동일 오리진만 허용) ──────
 const ALLOWED_ORIGINS = IS_PROD
   ? [process.env.ALLOWED_ORIGIN].filter(Boolean)

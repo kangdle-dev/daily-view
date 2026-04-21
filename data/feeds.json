@@ -13,7 +13,7 @@
         {
           "url": "https://www.khan.co.kr/rss/rssdata/economy_news.xml",
           "mainCategory": "경제"
-        },
+        }, 
         {
           "url": "https://www.khan.co.kr/rss/rssdata/society_news.xml",
           "mainCategory": "사회"
