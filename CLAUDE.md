@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ 중요: Git 배포 및 소스 수정 정책
+
+**Git push 및 소스 코드 수정은 반드시 사용자의 명시적 승인이 필요합니다.**
+- ❌ 자동으로 `git push` 하지 말 것
+- ❌ 자동으로 `git commit` 하지 말 것
+- ❌ 자동으로 코드 수정하지 말 것
+
+**절차:**
+1. 변경사항 설명 및 확인 요청
+2. 사용자 승인 후에만 코드 수정
+3. 사용자가 "진행해줘" 등으로 명시 지시한 후에만 커밋/푸시
+
 ## Commands
 
 ```bash
