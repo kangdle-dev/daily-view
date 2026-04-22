@@ -50,7 +50,7 @@ const FEEDS_DATA = {
       createdAt: new Date().toISOString()
     },
     {
-      id: "hk",
+      id: "5",
       key: "hankyung",
       name: "한국경제",
       feeds: [
@@ -63,6 +63,92 @@ const FEEDS_DATA = {
         { url: "https://www.hankyung.com/feed/entertainment", mainCategory: "문화" },
         { url: "https://www.hankyung.com/feed/sports", mainCategory: "스포츠" },
         { url: "https://www.hankyung.com/feed/it", mainCategory: "산업" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "6",
+      key: "mk",
+      name: "매일경제",
+      feeds: [
+        { url: "https://mk.co.kr/news/economy/feed/", mainCategory: "경제" },
+        { url: "https://mk.co.kr/news/stock/feed/", mainCategory: "증권.금융" },
+        { url: "https://mk.co.kr/news/politics/feed/", mainCategory: "정치" },
+        { url: "https://mk.co.kr/news/society/feed/", mainCategory: "사회" },
+        { url: "https://mk.co.kr/news/world/feed/", mainCategory: "국제" },
+        { url: "https://mk.co.kr/news/realestate/feed/", mainCategory: "부동산" },
+        { url: "https://mk.co.kr/news/it/feed/", mainCategory: "산업" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "7",
+      key: "joongang",
+      name: "중앙일보",
+      feeds: [
+        { url: "https://joongang.co.kr/rss/politics.xml", mainCategory: "정치" },
+        { url: "https://joongang.co.kr/rss/economy.xml", mainCategory: "경제" },
+        { url: "https://joongang.co.kr/rss/society.xml", mainCategory: "사회" },
+        { url: "https://joongang.co.kr/rss/world.xml", mainCategory: "국제" },
+        { url: "https://joongang.co.kr/rss/culture.xml", mainCategory: "문화" },
+        { url: "https://joongang.co.kr/rss/sports.xml", mainCategory: "스포츠" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "8",
+      key: "donga",
+      name: "동아일보",
+      feeds: [
+        { url: "https://rss.donga.com/politics.xml", mainCategory: "정치" },
+        { url: "https://rss.donga.com/economy.xml", mainCategory: "경제" },
+        { url: "https://rss.donga.com/society.xml", mainCategory: "사회" },
+        { url: "https://rss.donga.com/international.xml", mainCategory: "국제" },
+        { url: "https://rss.donga.com/culture.xml", mainCategory: "문화" },
+        { url: "https://rss.donga.com/sports.xml", mainCategory: "스포츠" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "9",
+      key: "newsis",
+      name: "뉴시스",
+      feeds: [
+        { url: "https://www.newsis.com/RSS/politics.xml", mainCategory: "정치" },
+        { url: "https://www.newsis.com/RSS/economy.xml", mainCategory: "경제" },
+        { url: "https://www.newsis.com/RSS/society.xml", mainCategory: "사회" },
+        { url: "https://www.newsis.com/RSS/international.xml", mainCategory: "국제" },
+        { url: "https://www.newsis.com/RSS/industry.xml", mainCategory: "산업" },
+        { url: "https://www.newsis.com/RSS/bank.xml", mainCategory: "증권.금융" },
+        { url: "https://www.newsis.com/RSS/sports.xml", mainCategory: "스포츠" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "10",
+      key: "seoul",
+      name: "서울신문",
+      feeds: [
+        { url: "https://www.seoul.co.kr/news/politics/feed/", mainCategory: "정치" },
+        { url: "https://www.seoul.co.kr/news/economy/feed/", mainCategory: "경제" },
+        { url: "https://www.seoul.co.kr/news/society/feed/", mainCategory: "사회" },
+        { url: "https://www.seoul.co.kr/news/world/feed/", mainCategory: "국제" },
+        { url: "https://www.seoul.co.kr/news/culture/feed/", mainCategory: "문화" },
+        { url: "https://www.seoul.co.kr/news/sports/feed/", mainCategory: "스포츠" }
+      ],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: "11",
+      key: "hani",
+      name: "한겨레",
+      feeds: [
+        { url: "https://www.hani.co.kr/rss/politics.xml", mainCategory: "정치" },
+        { url: "https://www.hani.co.kr/rss/economy.xml", mainCategory: "경제" },
+        { url: "https://www.hani.co.kr/rss/society.xml", mainCategory: "사회" },
+        { url: "https://www.hani.co.kr/rss/world.xml", mainCategory: "국제" },
+        { url: "https://www.hani.co.kr/rss/culture.xml", mainCategory: "문화" },
+        { url: "https://www.hani.co.kr/rss/sports.xml", mainCategory: "스포츠" }
       ],
       createdAt: new Date().toISOString()
     }

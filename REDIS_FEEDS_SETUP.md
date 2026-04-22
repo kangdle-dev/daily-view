@@ -2,6 +2,11 @@
 
 Redis에 피드 데이터를 저장하는 방법입니다.
 
+## 📰 포함된 언론사 (10개)
+
+1. 경향신문 2. 조선일보 3. 연합뉴스 4. 한국경제 5. 매일경제
+6. 중앙일보 7. 동아일보 8. 뉴시스 9. 서울신문 10. 한겨레
+
 ## 📋 JSON 데이터
 
 다음 JSON을 Redis `feeds:all` 키에 저장하세요:
@@ -14,152 +19,148 @@ Redis에 피드 데이터를 저장하는 방법입니다.
       "key": "khan",
       "name": "경향신문",
       "feeds": [
-        {
-          "url": "https://www.khan.co.kr/rss/rssdata/politic_news.xml",
-          "mainCategory": "정치"
-        },
-        {
-          "url": "https://www.khan.co.kr/rss/rssdata/economy_news.xml",
-          "mainCategory": "경제"
-        },
-        {
-          "url": "https://www.khan.co.kr/rss/rssdata/society_news.xml",
-          "mainCategory": "사회"
-        },
-        {
-          "url": "https://www.khan.co.kr/rss/rssdata/kh_world.xml",
-          "mainCategory": "국제"
-        },
-        {
-          "url": "https://www.khan.co.kr/rss/rssdata/kh_sports.xml",
-          "mainCategory": "스포츠"
-        },
-        {
-          "url": "https://www.khan.co.kr/rss/rssdata/culture_news.xml",
-          "mainCategory": "문화"
-        }
+        { "url": "https://www.khan.co.kr/rss/rssdata/politic_news.xml", "mainCategory": "정치" },
+        { "url": "https://www.khan.co.kr/rss/rssdata/economy_news.xml", "mainCategory": "경제" },
+        { "url": "https://www.khan.co.kr/rss/rssdata/society_news.xml", "mainCategory": "사회" },
+        { "url": "https://www.khan.co.kr/rss/rssdata/kh_world.xml", "mainCategory": "국제" },
+        { "url": "https://www.khan.co.kr/rss/rssdata/kh_sports.xml", "mainCategory": "스포츠" },
+        { "url": "https://www.khan.co.kr/rss/rssdata/culture_news.xml", "mainCategory": "문화" }
       ],
-      "createdAt": "2026-04-22T00:00:00.000Z"
+      "createdAt": "2026-04-21T00:00:00.000Z"
     },
     {
       "id": "2",
       "key": "chosun",
       "name": "조선일보",
       "feeds": [
-        {
-          "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml",
-          "mainCategory": "정치"
-        },
-        {
-          "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml",
-          "mainCategory": "경제"
-        },
-        {
-          "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/national/?outputType=xml",
-          "mainCategory": "사회"
-        },
-        {
-          "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/international/?outputType=xml",
-          "mainCategory": "국제"
-        },
-        {
-          "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/culture-life/?outputType=xml",
-          "mainCategory": "문화"
-        },
-        {
-          "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/sports/?outputType=xml",
-          "mainCategory": "스포츠"
-        }
+        { "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml", "mainCategory": "정치" },
+        { "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml", "mainCategory": "경제" },
+        { "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/national/?outputType=xml", "mainCategory": "사회" },
+        { "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/international/?outputType=xml", "mainCategory": "국제" },
+        { "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/culture-life/?outputType=xml", "mainCategory": "문화" },
+        { "url": "https://www.chosun.com/arc/outboundfeeds/rss/category/sports/?outputType=xml", "mainCategory": "스포츠" }
       ],
-      "createdAt": "2026-04-22T00:00:00.000Z"
+      "createdAt": "2026-04-21T00:00:00.000Z"
     },
     {
       "id": "4",
       "key": "yonhap",
       "name": "연합뉴스",
       "feeds": [
-        {
-          "url": "https://www.yna.co.kr/rss/politics.xml",
-          "mainCategory": "정치"
-        },
-        {
-          "url": "https://www.yna.co.kr/rss/northkorea.xml",
-          "mainCategory": "북한"
-        },
-        {
-          "url": "https://www.yna.co.kr/rss/economy.xml",
-          "mainCategory": "경제"
-        },
-        {
-          "url": "https://www.yna.co.kr/rss/market.xml",
-          "mainCategory": "증권.금융"
-        },
-        {
-          "url": "https://www.yna.co.kr/rss/industry.xml",
-          "mainCategory": "산업"
-        },
-        {
-          "url": "https://www.yna.co.kr/rss/society.xml",
-          "mainCategory": "사회"
-        },
-        {
-          "url": "https://www.yna.co.kr/rss/international.xml",
-          "mainCategory": "국제"
-        },
-        {
-          "url": "https://www.yna.co.kr/rss/entertainment.xml",
-          "mainCategory": "문화"
-        },
-        {
-          "url": "https://www.yna.co.kr/rss/sports.xml",
-          "mainCategory": "스포츠"
-        }
+        { "url": "https://www.yna.co.kr/rss/politics.xml", "mainCategory": "정치" },
+        { "url": "https://www.yna.co.kr/rss/northkorea.xml", "mainCategory": "북한" },
+        { "url": "https://www.yna.co.kr/rss/economy.xml", "mainCategory": "경제" },
+        { "url": "https://www.yna.co.kr/rss/market.xml", "mainCategory": "증권.금융" },
+        { "url": "https://www.yna.co.kr/rss/industry.xml", "mainCategory": "산업" },
+        { "url": "https://www.yna.co.kr/rss/society.xml", "mainCategory": "사회" },
+        { "url": "https://www.yna.co.kr/rss/international.xml", "mainCategory": "국제" },
+        { "url": "https://www.yna.co.kr/rss/entertainment.xml", "mainCategory": "문화" },
+        { "url": "https://www.yna.co.kr/rss/sports.xml", "mainCategory": "스포츠" }
       ],
-      "createdAt": "2026-04-22T00:00:00.000Z"
+      "createdAt": "2026-04-21T00:00:00.000Z"
     },
     {
-      "id": "hk",
+      "id": "5",
       "key": "hankyung",
       "name": "한국경제",
       "feeds": [
-        {
-          "url": "https://www.hankyung.com/feed/finance",
-          "mainCategory": "증권.금융"
-        },
-        {
-          "url": "https://www.hankyung.com/feed/economy",
-          "mainCategory": "경제"
-        },
-        {
-          "url": "https://www.hankyung.com/feed/realestate",
-          "mainCategory": "부동산"
-        },
-        {
-          "url": "https://www.hankyung.com/feed/politics",
-          "mainCategory": "정치"
-        },
-        {
-          "url": "https://www.hankyung.com/feed/international",
-          "mainCategory": "국제"
-        },
-        {
-          "url": "https://www.hankyung.com/feed/society",
-          "mainCategory": "사회"
-        },
-        {
-          "url": "https://www.hankyung.com/feed/entertainment",
-          "mainCategory": "문화"
-        },
-        {
-          "url": "https://www.hankyung.com/feed/sports",
-          "mainCategory": "스포츠"
-        },
-        {
-          "url": "https://www.hankyung.com/feed/it",
-          "mainCategory": "산업"
-        }
+        { "url": "https://www.hankyung.com/feed/finance", "mainCategory": "증권.금융" },
+        { "url": "https://www.hankyung.com/feed/economy", "mainCategory": "경제" },
+        { "url": "https://www.hankyung.com/feed/realestate", "mainCategory": "부동산" },
+        { "url": "https://www.hankyung.com/feed/politics", "mainCategory": "정치" },
+        { "url": "https://www.hankyung.com/feed/international", "mainCategory": "국제" },
+        { "url": "https://www.hankyung.com/feed/society", "mainCategory": "사회" },
+        { "url": "https://www.hankyung.com/feed/entertainment", "mainCategory": "문화" },
+        { "url": "https://www.hankyung.com/feed/sports", "mainCategory": "스포츠" },
+        { "url": "https://www.hankyung.com/feed/it", "mainCategory": "산업" }
       ],
-      "createdAt": "2026-04-22T00:00:00.000Z"
+      "createdAt": "2026-04-21T00:00:00.000Z"
+    },
+    {
+      "id": "6",
+      "key": "mk",
+      "name": "매일경제",
+      "feeds": [
+        { "url": "https://mk.co.kr/news/economy/feed/", "mainCategory": "경제" },
+        { "url": "https://mk.co.kr/news/stock/feed/", "mainCategory": "증권.금융" },
+        { "url": "https://mk.co.kr/news/politics/feed/", "mainCategory": "정치" },
+        { "url": "https://mk.co.kr/news/society/feed/", "mainCategory": "사회" },
+        { "url": "https://mk.co.kr/news/world/feed/", "mainCategory": "국제" },
+        { "url": "https://mk.co.kr/news/realestate/feed/", "mainCategory": "부동산" },
+        { "url": "https://mk.co.kr/news/it/feed/", "mainCategory": "산업" }
+      ],
+      "createdAt": "2026-04-21T00:00:00.000Z"
+    },
+    {
+      "id": "7",
+      "key": "joongang",
+      "name": "중앙일보",
+      "feeds": [
+        { "url": "https://joongang.co.kr/rss/politics.xml", "mainCategory": "정치" },
+        { "url": "https://joongang.co.kr/rss/economy.xml", "mainCategory": "경제" },
+        { "url": "https://joongang.co.kr/rss/society.xml", "mainCategory": "사회" },
+        { "url": "https://joongang.co.kr/rss/world.xml", "mainCategory": "국제" },
+        { "url": "https://joongang.co.kr/rss/culture.xml", "mainCategory": "문화" },
+        { "url": "https://joongang.co.kr/rss/sports.xml", "mainCategory": "스포츠" }
+      ],
+      "createdAt": "2026-04-21T00:00:00.000Z"
+    },
+    {
+      "id": "8",
+      "key": "donga",
+      "name": "동아일보",
+      "feeds": [
+        { "url": "https://rss.donga.com/politics.xml", "mainCategory": "정치" },
+        { "url": "https://rss.donga.com/economy.xml", "mainCategory": "경제" },
+        { "url": "https://rss.donga.com/society.xml", "mainCategory": "사회" },
+        { "url": "https://rss.donga.com/international.xml", "mainCategory": "국제" },
+        { "url": "https://rss.donga.com/culture.xml", "mainCategory": "문화" },
+        { "url": "https://rss.donga.com/sports.xml", "mainCategory": "스포츠" }
+      ],
+      "createdAt": "2026-04-21T00:00:00.000Z"
+    },
+    {
+      "id": "9",
+      "key": "newsis",
+      "name": "뉴시스",
+      "feeds": [
+        { "url": "https://www.newsis.com/RSS/politics.xml", "mainCategory": "정치" },
+        { "url": "https://www.newsis.com/RSS/economy.xml", "mainCategory": "경제" },
+        { "url": "https://www.newsis.com/RSS/society.xml", "mainCategory": "사회" },
+        { "url": "https://www.newsis.com/RSS/international.xml", "mainCategory": "국제" },
+        { "url": "https://www.newsis.com/RSS/industry.xml", "mainCategory": "산업" },
+        { "url": "https://www.newsis.com/RSS/bank.xml", "mainCategory": "증권.금융" },
+        { "url": "https://www.newsis.com/RSS/sports.xml", "mainCategory": "스포츠" }
+      ],
+      "createdAt": "2026-04-21T00:00:00.000Z"
+    },
+    {
+      "id": "10",
+      "key": "seoul",
+      "name": "서울신문",
+      "feeds": [
+        { "url": "https://www.seoul.co.kr/news/politics/feed/", "mainCategory": "정치" },
+        { "url": "https://www.seoul.co.kr/news/economy/feed/", "mainCategory": "경제" },
+        { "url": "https://www.seoul.co.kr/news/society/feed/", "mainCategory": "사회" },
+        { "url": "https://www.seoul.co.kr/news/world/feed/", "mainCategory": "국제" },
+        { "url": "https://www.seoul.co.kr/news/culture/feed/", "mainCategory": "문화" },
+        { "url": "https://www.seoul.co.kr/news/sports/feed/", "mainCategory": "스포츠" }
+      ],
+      "createdAt": "2026-04-21T00:00:00.000Z"
+    },
+    {
+      "id": "11",
+      "key": "hani",
+      "name": "한겨레",
+      "feeds": [
+        { "url": "https://www.hani.co.kr/rss/politics.xml", "mainCategory": "정치" },
+        { "url": "https://www.hani.co.kr/rss/economy.xml", "mainCategory": "경제" },
+        { "url": "https://www.hani.co.kr/rss/society.xml", "mainCategory": "사회" },
+        { "url": "https://www.hani.co.kr/rss/world.xml", "mainCategory": "국제" },
+        { "url": "https://www.hani.co.kr/rss/culture.xml", "mainCategory": "문화" },
+        { "url": "https://www.hani.co.kr/rss/sports.xml", "mainCategory": "스포츠" }
+      ],
+      "createdAt": "2026-04-21T00:00:00.000Z"
     }
   ]
 }
