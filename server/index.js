@@ -17,6 +17,7 @@ import { initAccounts, authenticate, getAccounts, addAccount, updateAccount, rem
 import { createSession, destroySession, authGuard, requireRole, checkRateLimit, resetRateLimit } from "./authMiddleware.js";
 import { getSettings, saveSettings } from "./settingsStore.js";
 import { restartScheduler } from "./scheduler.js";
+import { initRedis } from "./redisStore.js";
 import Parser from "rss-parser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -117,6 +118,9 @@ if (!fs.existsSync(feedsPath)) {
     console.error("[init] feeds.json 생성 실패:", err.message);
   }
 }
+
+// ─── Redis 초기화 ────────────────────────────────────────
+await initRedis();
 
 // ─── 보안: CORS (프로덕션에서는 동일 오리진만 허용) ──────
 const ALLOWED_ORIGINS = IS_PROD

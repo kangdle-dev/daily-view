@@ -1,9 +1,11 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { get as redisGet, set as redisSet, del as redisDel, isRedisAvailable } from "./redisStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FEEDS_FILE = path.join(__dirname, "..", "data", "feeds.json");
+const REDIS_KEY = "feeds:all";
 
 async function read() {
   try {
@@ -17,10 +19,26 @@ async function read() {
 async function write(data) {
   await fs.mkdir(path.dirname(FEEDS_FILE), { recursive: true });
   await fs.writeFile(FEEDS_FILE, JSON.stringify(data, null, 2), "utf-8");
+  // Redis 캐시 업데이트
+  if (isRedisAvailable()) {
+    await redisSet(REDIS_KEY, data);
+  }
 }
 
 export async function getCustomSources() {
+  // Redis 캐시 먼저 확인
+  if (isRedisAvailable()) {
+    const cached = await redisGet(REDIS_KEY);
+    if (cached) {
+      return cached.sources || [];
+    }
+  }
+  // Redis 없거나 캐시 미스 → 파일에서 읽기
   const data = await read();
+  // 파일에서 읽은 후 Redis에 저장
+  if (isRedisAvailable()) {
+    await redisSet(REDIS_KEY, data);
+  }
   return data.sources || [];
 }
 
@@ -58,4 +76,8 @@ export async function removeCustomSource(id) {
   const data = await read();
   data.sources = data.sources.filter(s => s.id !== id);
   await write(data);
+  // Redis 캐시 무효화
+  if (isRedisAvailable()) {
+    await redisDel(REDIS_KEY);
+  }
 }
