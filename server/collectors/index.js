@@ -1,6 +1,7 @@
 import { collectCustomSource } from "./custom.js";
 import { getCustomSources } from "../feedStore.js";
 import { getArticleUrls } from "../articleStore.js";
+import { deleteAllReports } from "../reportStore.js";
 
 /** 커스텀 소스만 사용 (모든 소스는 커스텀) */
 async function getActiveSources() {
@@ -65,5 +66,9 @@ export async function collectAll(source = "all", onProgress = null) {
       Object.entries(results).map(([k, v]) => [k, typeof v === "object" ? (v.added ?? 0) : 0])
     ),
   });
+
+  // 수집 완료 후 리포트 캐시 제거 (다음 리포트 요청 시 새로 생성)
+  await deleteAllReports();
+
   return results;
 }

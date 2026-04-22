@@ -1,10 +1,23 @@
 import { getArticles } from "./articleStore.js";
 
-// 카테고리 중요도 가중치
-const CAT_WEIGHT = {
-  정치: 2, 경제: 2, 사회: 2, 국제: 1.5, 세계: 1.5, 글로벌: 1.5,
-  북한: 2, 산업: 1.5, 마켓: 1.5, "증권·금융": 1.5,
-  문화: 1, 스포츠: 1, 연예: 1, 전국: 1,
+// 카테고리별 기본 점수 + 계수
+const CAT_CONFIG = {
+  정치: { baseScore: 2, coefficient: 1.5 },
+  경제: { baseScore: 2, coefficient: 1.5 },
+  사회: { baseScore: 2, coefficient: 1.5 },
+  북한: { baseScore: 2, coefficient: 1.5 },
+  국제: { baseScore: 1.5, coefficient: 1.3 },
+  산업: { baseScore: 1.5, coefficient: 1.3 },
+  마켓: { baseScore: 1.5, coefficient: 1.3 },
+  "증권·금융": { baseScore: 1.5, coefficient: 1.3 },
+  금융: { baseScore: 1.5, coefficient: 1.3 },
+  세계: { baseScore: 1.5, coefficient: 1.3 },
+  글로벌: { baseScore: 1.5, coefficient: 1.3 },
+  문화: { baseScore: 1, coefficient: 1.0 },
+  스포츠: { baseScore: 1, coefficient: 1.0 },
+  연예: { baseScore: 1, coefficient: 1.0 },
+  전국: { baseScore: 1, coefficient: 1.0 },
+  부동산: { baseScore: 1.5, coefficient: 1.3 },
 };
 
 // 한국어 불용어 (조사·접속사·일반 동사)
@@ -34,28 +47,51 @@ function similarity(kw1, kw2) {
   return intersection.length / Math.max(union.size, 1);
 }
 
-/** 기사 점수 계산 */
+/** 라벨 점수 계산 */
+function getLabelScore(title) {
+  if (title.includes("[단독]")) return 4;
+  if (title.includes("[속보]")) return 2;
+  return 0;
+}
+
+/** 기사 점수 계산 (중요도 + 최신성) */
 function scoreArticle(article, groupSize = 1) {
-  let score = 0;
+  const catConfig = CAT_CONFIG[article.category] || { baseScore: 1, coefficient: 1.0 };
 
-  // 단독·속보 가중치
-  if (article.isBreaking) score += 5;
+  // ── 중요도 점수 ──────────────────────────────────
+  // 1. 라벨 점수
+  const labelScore = getLabelScore(article.title);
 
-  // 복수 언론사 보도 가중치 (그룹 크기)
-  score += Math.min(groupSize - 1, 5);
+  // 2. 복수보도 점수 = min(groupSize - 1, 5) × 카테고리 계수
+  const multiMediaScore = Math.min(groupSize - 1, 5) * catConfig.coefficient;
 
-  // 최신성 가중치
+  // 3. 카테고리 기본 점수
+  const categoryScore = catConfig.baseScore;
+
+  // 4. 본문 점수
+  const contentScore = (article.content && article.content.length > 100) ? 1 : 0;
+
+  // 중요도 = 라벨 + 복수보도 + 카테고리 + 본문
+  const importance = labelScore + multiMediaScore + categoryScore + contentScore;
+
+  // ── 최신성 점수 ──────────────────────────────────
   const ageHours = (Date.now() - new Date(article.publishedAt).getTime()) / 3600000;
-  if (ageHours <= 6)  score += 2;
-  else if (ageHours <= 12) score += 1;
+  let freshness = 0;
+  if (ageHours <= 6) freshness = 2;
+  else if (ageHours <= 12) freshness = 1;
+  else if (ageHours <= 24) freshness = 0.5;
+  else freshness = 0;
 
-  // 카테고리 중요도
-  score += CAT_WEIGHT[article.category] || 1;
+  // ── 최종 점수 ──────────────────────────────────
+  const finalScore = (importance * 0.7) + (freshness * 0.3);
 
-  // 본문 있으면 +1
-  if (article.content && article.content.length > 100) score += 1;
-
-  return score;
+  return {
+    importance,
+    freshness,
+    finalScore,
+    // 하위 호환성: 기존 코드에서 숫자로 직접 사용할 경우
+    valueOf: () => finalScore
+  };
 }
 
 /** 기사 목록을 유사 그룹으로 묶기 */
@@ -89,9 +125,11 @@ function groupArticles(articles) {
 
 /** 그룹에서 대표 기사 선정 (가장 점수 높은 것) */
 function pickRepresentative(group) {
-  return group.reduce((best, cur) =>
-    scoreArticle(cur, group.length) > scoreArticle(best, group.length) ? cur : best
-  );
+  return group.reduce((best, cur) => {
+    const curScore = scoreArticle(cur, group.length);
+    const bestScore = scoreArticle(best, group.length);
+    return curScore.finalScore > bestScore.finalScore ? cur : best;
+  });
 }
 
 /** 최종 리포트 생성 */
@@ -112,7 +150,7 @@ export async function generateReport(date) {
 
   // ── 종합 TOP 10 ────────────────────────────────────────
   const top10 = [...scored]
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => b.score.finalScore - a.score.finalScore)
     .slice(0, 10)
     .map(({ rep, score, sources, groupSize }) => ({
       title:       rep.title,
@@ -124,7 +162,9 @@ export async function generateReport(date) {
       isBreaking:  rep.isBreaking,
       summary:     rep.summary || "",
       content:     rep.content ? rep.content.slice(0, 300) : "",
-      score,
+      score:       score.finalScore,
+      importance:  score.importance,
+      freshness:   score.freshness,
       groupSize,
     }));
 
@@ -149,7 +189,7 @@ export async function generateReport(date) {
     });
 
     catReports[cat] = catScored
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => b.score.finalScore - a.score.finalScore)
       .slice(0, 10)
       .map(({ rep, score, sources, groupSize }) => ({
         title:       rep.title,
@@ -160,7 +200,9 @@ export async function generateReport(date) {
         isBreaking:  rep.isBreaking,
         summary:     rep.summary || "",
         content:     rep.content ? rep.content.slice(0, 300) : "",
-        score,
+        score:       score.finalScore,
+        importance:  score.importance,
+        freshness:   score.freshness,
         groupSize,
       }));
   }

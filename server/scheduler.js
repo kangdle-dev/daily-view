@@ -2,6 +2,8 @@ import cron from "node-cron";
 import { generateBriefing } from "./generate.js";
 import { saveBriefing, getBriefing } from "./store.js";
 import { getSettings } from "./settingsStore.js";
+import { sendTelegramMessage } from "./telegramService.js";
+import { collectAll } from "./collectors/index.js";
 
 // KST 기준 오늘 날짜 (YYYY-MM-DD)
 function todayKST() {
@@ -35,7 +37,38 @@ async function runDailyBriefing() {
   }
 }
 
+async function runDailyCollection() {
+  const date = todayStr();
+  const startTime = new Date();
+  console.log(`[scheduler] 자동 수집 시작 — ${date} ${startTime.toLocaleTimeString("ko-KR")}`);
+
+  try {
+    const results = await collectAll("all");
+    const endTime = new Date();
+    const duration = ((endTime - startTime) / 1000).toFixed(1);
+
+    const totalArticles = Object.values(results).reduce((sum, r) => {
+      return sum + (typeof r === "object" ? (r.added ?? r.total ?? 0) : 0);
+    }, 0);
+
+    const message = `✅ <b>뉴스 수집 완료</b>
+📊 ${totalArticles}개 기사 수집됨
+⏰ ${date} ${endTime.toLocaleTimeString("ko-KR")}
+⚡ ${duration}초`;
+
+    console.log(`[scheduler] 수집 완료 — ${totalArticles}개 기사 (${duration}초)`);
+    await sendTelegramMessage(message);
+  } catch (err) {
+    console.error(`[scheduler] 수집 오류:`, err.message);
+    const message = `❌ <b>뉴스 수집 실패</b>
+⚠️ ${err.message}
+⏰ ${new Date().toLocaleTimeString("ko-KR")}`;
+    await sendTelegramMessage(message);
+  }
+}
+
 let briefingTask = null;
+let collectionTask = null;
 
 export async function startScheduler() {
   try {
@@ -56,6 +89,18 @@ export async function startScheduler() {
     );
 
     console.log(`[scheduler] 등록 완료 — 매일 ${settings.briefingHour}:${String(settings.briefingMinute).padStart(2, '0')} KST 자동 생성`);
+
+    // 3 PM 자동 수집 (테스트용)
+    if (collectionTask) {
+      collectionTask.stop();
+      collectionTask = null;
+    }
+    collectionTask = cron.schedule(
+      "0 15 * * *",
+      () => { runDailyCollection(); },
+      { timezone: "Asia/Seoul" }
+    );
+    console.log("[scheduler] 등록 완료 — 매일 15:00 KST 자동 수집");
   } catch (err) {
     console.error(`[scheduler] 초기화 실패:`, err.message);
     // 폴백: 기본 시간으로 등록
@@ -75,4 +120,4 @@ export async function restartScheduler() {
 }
 
 // 수동 트리거 (API에서 호출)
-export { runDailyBriefing };
+export { runDailyBriefing, runDailyCollection };

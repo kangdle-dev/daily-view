@@ -18,6 +18,10 @@ import { createSession, destroySession, authGuard, requireRole, checkRateLimit, 
 import { getSettings, saveSettings } from "./settingsStore.js";
 import { restartScheduler } from "./scheduler.js";
 import { initRedis, seedData } from "./redisStore.js";
+import { sendTelegramMessage } from "./telegramService.js";
+import { getReport, saveReport, deleteAllReports } from "./reportStore.js";
+import { generatePersonReport } from "./personReport.js";
+import { generatePersonInsight } from "./personInsight.js";
 import Parser from "rss-parser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -252,10 +256,61 @@ app.get("/api/report", async (req, res) => {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
     return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
   try {
+    // 캐시 확인
+    const cached = await getReport(date);
+    if (cached) {
+      console.log(`[report] 캐시 사용 — ${date}`);
+      return res.json(cached);
+    }
+
+    // 캐시 없으면 생성
+    console.log(`[report] 캐시 없음, 분석 시작 — ${date}`);
     const report = await generateReport(date);
     if (!report) return res.status(404).json({ error: "해당 날짜의 수집 기사가 없습니다." });
+
+    // 생성된 리포트 캐싱
+    await saveReport(date, report);
     res.json(report);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 이광재 리포트 ────────────────────────────────────────
+app.get("/api/report/gwangjae", async (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+  try {
+    const report = await generatePersonReport(date, ["이광재"]);
+    if (!report) return res.status(404).json({ error: "이광재 관련 기사가 없습니다." });
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 이광재 인사이트 (정서 분석 + AI 요약) ──────────────
+app.get("/api/report/gwangjae/insight", async (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+  try {
+    const articles = await getArticles(date);
+    if (!articles?.length) return res.status(404).json({ error: "기사가 없습니다." });
+
+    // 이광재 관련 기사만 필터
+    const filtered = articles.filter(a => {
+      const text = (a.title || "") + " " + (a.content || "") + " " + (a.summary || "");
+      return text.includes("이광재");
+    });
+
+    if (!filtered.length) return res.status(404).json({ error: "이광재 관련 기사가 없습니다." });
+
+    const insight = await generatePersonInsight(date, "이광재", filtered);
+    res.json(insight);
+  } catch (err) {
+    console.error("[gwangjae/insight] 오류:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -412,6 +467,87 @@ app.post("/api/settings", requireRole("admin"), async (req, res) => {
     res.json({ ok: true, settings: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── Telegram 리포트 발송 ────────────────────────────────
+app.post("/api/telegram/send-report", async (req, res) => {
+  try {
+    const { date, report } = req.body;
+    const targetCats = ["정치", "경제", "사회", "국제", "증권·금융"].filter(c => report.categories[c]);
+
+    // 메시지 포맷팅
+    let msgLines = [
+      `📊 <b>뉴스 텔레그램 리포트</b>`,
+      `📅 ${date}`,
+      ``,
+      `<b>📰 종합 주요기사</b>`,
+    ];
+
+    report.top10.slice(0, 5).forEach((a, i) => {
+      msgLines.push(`${i + 1}. <a href="${a.url}">${a.title}</a>`);
+    });
+
+    msgLines.push(``, `<b>📂 카테고리별 중요기사</b>`);
+
+    targetCats.forEach(cat => {
+      const articles = report.categories[cat] || [];
+      msgLines.push(``, `<b>${cat}</b>`);
+      articles.slice(0, 3).forEach((a, i) => {
+        msgLines.push(`${i + 1}. <a href="${a.url}">${a.title}</a>`);
+      });
+    });
+
+    const message = msgLines.join("\n");
+
+    // 검증된 sendTelegramMessage 함수 사용
+    const result = await sendTelegramMessage(message);
+
+    if (!result) {
+      throw new Error("Telegram 발송 실패");
+    }
+
+    res.json({ ok: true, message: "Telegram으로 발송되었습니다" });
+  } catch (err) {
+    console.error("[telegram/send-report] 오류:", err.message);
+    res.status(500).json({ error: err.message || "Telegram 발송 실패. 환경 변수(TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID) 확인" });
+  }
+});
+
+// ─── 이광재 리포트 Telegram 발송 ──────────────────────────
+app.post("/api/telegram/send-gwangjae-report", async (req, res) => {
+  try {
+    const { date, report } = req.body;
+    if (!report) throw new Error("리포트 데이터가 필요합니다");
+
+    // 메시지 포맷팅
+    let msgLines = [
+      `📊 <b>이광재 뉴스 리포트</b>`,
+      `📅 ${date}`,
+      ``,
+      `<b>📰 주요 기사 (${report.totalArticles}건)</b>`,
+    ];
+
+    report.top15.slice(0, 10).forEach((a, i) => {
+      msgLines.push(`${i + 1}. <a href="${a.url}">${a.title}</a>`);
+    });
+
+    msgLines.push(``, `<b>🔑 관련 키워드</b>`);
+    report.relatedKeywords.slice(0, 10).forEach(k => {
+      msgLines.push(`• ${k.word} (${k.count})`);
+    });
+
+    const message = msgLines.join("\n");
+    const result = await sendTelegramMessage(message);
+
+    if (!result) {
+      throw new Error("Telegram 발송 실패");
+    }
+
+    res.json({ ok: true, message: "Telegram으로 발송되었습니다" });
+  } catch (err) {
+    console.error("[telegram/send-gwangjae-report] 오류:", err.message);
+    res.status(500).json({ error: err.message || "Telegram 발송 실패" });
   }
 });
 

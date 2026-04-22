@@ -14,6 +14,14 @@ const C = {
   gold:     "#D97706",
 };
 
+const TABS = [
+  { id: "comprehensive", label: "종합뉴스리포트" },
+  { id: "telegram", label: "텔레그램리포트" },
+  { id: "jaeming", label: "이재명" },
+  { id: "gwangjae", label: "이광재" },
+  { id: "trump", label: "트럼프" },
+];
+
 const CAT_COLORS = {
   정치:       { bg: "#EFF6FF", text: "#1D4ED8", dot: "#3B82F6" },
   경제:       { bg: "#F0FDF4", text: "#15803D", dot: "#22C55E" },
@@ -55,7 +63,6 @@ function relTime(iso) {
   return `${Math.floor(h / 24)}일 전`;
 }
 
-// ── 반응형 훅 ─────────────────────────────────────────────
 function useIsMobile() {
   const [mobile, setMobile] = useState(window.innerWidth < 640);
   useEffect(() => {
@@ -89,18 +96,13 @@ function SourceList({ sources }) {
   );
 }
 
-// ── 종합 TOP 카드 ─────────────────────────────────────────
 function TopArticleCard({ article, rank, isMobile }) {
   const rankColors = ["#D97706", "#64748B", "#B45309"];
   const isTop3 = rank <= 3;
-  const leftColor = article.isBreaking
-    ? C.breaking
-    : isTop3 ? rankColors[rank - 1]
-    : C.border;
+  const leftColor = article.isBreaking ? C.breaking : isTop3 ? rankColors[rank - 1] : C.border;
 
   return (
-    <a href={article.url} target="_blank" rel="noreferrer"
-      style={{ textDecoration: "none", display: "block" }}>
+    <a href={article.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>
       <div style={{
         background: C.surface,
         border: `1px solid ${article.isBreaking ? C.breaking : C.border}`,
@@ -113,8 +115,6 @@ function TopArticleCard({ article, rank, isMobile }) {
         onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
       >
         <div style={{ display: "flex", gap: isMobile ? 10 : 14, alignItems: "flex-start" }}>
-
-          {/* 순위 번호 */}
           <div style={{
             flexShrink: 0,
             width: isMobile ? 28 : 32, height: isMobile ? 28 : 32,
@@ -125,9 +125,7 @@ function TopArticleCard({ article, rank, isMobile }) {
           }}>
             {rank}
           </div>
-
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* 배지 행 */}
             <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center", marginBottom: 6 }}>
               {article.isBreaking && (
                 <span style={{ background: C.breaking, color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 4 }}>단독·속보</span>
@@ -140,29 +138,12 @@ function TopArticleCard({ article, rank, isMobile }) {
               )}
               <span style={{ marginLeft: "auto", fontSize: 11, color: C.txt3, flexShrink: 0 }}>{relTime(article.publishedAt)}</span>
             </div>
-
-            {/* 제목 */}
             <div style={{
               fontSize: isMobile ? 14 : 15,
               fontWeight: 800, color: C.txt1, lineHeight: 1.55, marginBottom: 6,
             }}>
               {article.title}
             </div>
-
-            {/* 요약 — 모바일은 1줄, 데스크탑은 2줄 */}
-            {article.summary && (
-              <div style={{
-                fontSize: 12, color: C.txt2, lineHeight: 1.65, marginBottom: 8,
-                overflow: "hidden", 
-                // display: "-webkit-box",
-                display: "none",
-                WebkitLineClamp: isMobile ? 1 : 2, WebkitBoxOrient: "vertical",                
-              }}>
-                {article.summary}
-              </div>
-            )}
-
-            {/* 출처 + 링크 */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <SourceList sources={article.sources} />
               <span style={{ fontSize: 11, color: C.accent, fontWeight: 700, flexShrink: 0 }}>원문 →</span>
@@ -174,11 +155,9 @@ function TopArticleCard({ article, rank, isMobile }) {
   );
 }
 
-// ── 카테고리 기사 행 ──────────────────────────────────────
 function CatArticleRow({ article, rank, isMobile }) {
   return (
-    <a href={article.url} target="_blank" rel="noreferrer"
-      style={{ textDecoration: "none", display: "block" }}>
+    <a href={article.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>
       <div style={{
         padding: isMobile ? "11px 14px" : "12px 18px",
         borderBottom: `1px solid ${C.border}`,
@@ -194,9 +173,7 @@ function CatArticleRow({ article, rank, isMobile }) {
         }}>
           {rank}
         </span>
-
         <div style={{ flex: 1, minWidth: 0 }}>
-          {/* 뱃지 */}
           <div style={{ display: "flex", gap: 4, marginBottom: 4, flexWrap: "wrap", alignItems: "center" }}>
             {article.isBreaking && (
               <span style={{ background: C.breaking, color: "#fff", fontSize: 9, fontWeight: 800, padding: "1px 5px", borderRadius: 3 }}>속보</span>
@@ -207,13 +184,9 @@ function CatArticleRow({ article, rank, isMobile }) {
               </span>
             )}
           </div>
-
-          {/* 제목 */}
           <div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 700, color: C.txt1, lineHeight: 1.5, marginBottom: 4 }}>
             {article.title}
           </div>
-
-          {/* 출처 + 시간 */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
             <SourceList sources={article.sources} />
             <span style={{ fontSize: 11, color: C.txt3, flexShrink: 0 }}>{relTime(article.publishedAt)}</span>
@@ -224,7 +197,6 @@ function CatArticleRow({ article, rank, isMobile }) {
   );
 }
 
-// ── 카테고리 섹션 ─────────────────────────────────────────
 function CategorySection({ category, articles, defaultOpen, isMobile }) {
   const [open, setOpen] = useState(defaultOpen);
   const c = CAT_COLORS[category] || { bg: "#F8FAFC", text: "#334155", dot: "#64748B" };
@@ -241,14 +213,13 @@ function CategorySection({ category, articles, defaultOpen, isMobile }) {
           padding: isMobile ? "13px 14px" : "14px 18px",
           display: "flex", alignItems: "center", gap: 10,
           cursor: "pointer", textAlign: "left",
-          minHeight: 48, // 터치 영역 확보
+          minHeight: 48,
         }}>
         <span style={{ width: 10, height: 10, borderRadius: "50%", background: c.dot, flexShrink: 0 }} />
         <span style={{ fontWeight: 800, fontSize: isMobile ? 14 : 15, color: C.txt1, flex: 1 }}>{category}</span>
         <span style={{ fontSize: 12, color: C.txt3, fontWeight: 500 }}>{articles.length}건</span>
         <span style={{ fontSize: 11, color: C.txt3, marginLeft: 6 }}>{open ? "▲" : "▼"}</span>
       </button>
-
       {open && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
           {articles.map((a, i) => (
@@ -260,12 +231,310 @@ function CategorySection({ category, articles, defaultOpen, isMobile }) {
   );
 }
 
-// ── 메인 ─────────────────────────────────────────────────
+function TelegramReport({ report, date }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+console.log('reports',report);
+
+  if (!report) return null;
+  const targetCats = ["정치", "경제", "사회", "국제", "증권·금융"].filter(c => report.categories[c]);
+
+  const handleSend = async () => {
+    console.log("텔레그램 발송 시도", { date, report });
+    setSending(true);
+    try {
+      const res = await fetch("/api/telegram/send-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, report })
+      });
+      console.log(res);
+      if (!res.ok) throw new Error("발송 실패");
+      setSent(true);
+      setTimeout(() => setSent(false), 3000);
+    } catch (err) {
+      alert("❌ " + err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div>
+      {/* 발송 버튼 */}
+      <div style={{ marginBottom: 20, display: "flex", gap: 8 }}>
+        <button onClick={handleSend} disabled={sending}
+          style={{
+            flex: 1, padding: "12px 16px", background: sent ? "#22C55E" : C.accent,
+            color: "#fff", border: "none", borderRadius: 8, fontWeight: 700,
+            fontSize: 14, cursor: sending ? "not-allowed" : "pointer",
+            opacity: sending ? 0.7 : 1, transition: "all .3s",
+          }}>
+          {sending ? "발송 중..." : sent ? "✅ 발송완료" : "📱 텔레그램으로 발송"}
+        </button>
+      </div>
+
+      <div style={{ marginBottom: 28 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: C.txt1, marginBottom: 12 }}>📰 종합 주요기사</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {report.top10.slice(0, 5).map((a, i) => (
+            <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none" }}>
+              <div style={{ padding: "10px 0", borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.accent }}>
+                  {i + 1}. {a.title}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+      <div>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: C.txt1, marginBottom: 12 }}>📂 카테고리별 중요기사</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {targetCats.map(cat => {
+            const articles = report.categories[cat] || [];
+            const catColor = CAT_COLORS[cat] || { dot: "#64748B" };
+            return (
+              <div key={cat}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: catColor.dot }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.txt1 }}>{cat}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 12 }}>
+                  {articles.slice(0, 3).map((a, i) => (
+                    <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none" }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: C.txt2, cursor: "pointer", lineHeight: 1.4 }}>
+                        {i + 1}. {a.title}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GwangjaeReport({ report, date, insight }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSend = async () => {
+    console.log("이광재 리포트 텔레그램 발송 시도", { date, report });
+    setSending(true);
+    try {
+      const res = await fetch("/api/telegram/send-gwangjae-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, report })
+      });
+      if (!res.ok) throw new Error("발송 실패");
+      setSent(true);
+      setTimeout(() => setSent(false), 3000);
+    } catch (err) {
+      alert("❌ " + err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (!report) return null;
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20, display: "flex", gap: 8 }}>
+        <button onClick={handleSend} disabled={sending}
+          style={{
+            flex: 1, padding: "12px 16px", background: sent ? "#22C55E" : C.accent,
+            color: "#fff", border: "none", borderRadius: 8, fontWeight: 700,
+            fontSize: 14, cursor: sending ? "not-allowed" : "pointer",
+            opacity: sending ? 0.7 : 1, transition: "all .3s",
+          }}>
+          {sending ? "발송 중..." : sent ? "✅ 발송완료" : "📱 텔레그램으로 발송"}
+        </button>
+      </div>
+
+      <div style={{ marginBottom: 28 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: C.txt1, marginBottom: 12 }}>
+          📰 이광재 관련 기사 ({report.totalArticles}건)
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {report.top15.map((a, i) => (
+            <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none" }}>
+              <div style={{
+                padding: "12px", background: C.surface, border: `1px solid ${C.border}`,
+                borderRadius: 8, cursor: "pointer",
+                transition: "box-shadow .2s",
+              }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,.08)"}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+              >
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <span style={{
+                    flexShrink: 0, fontSize: 13, fontWeight: 700, color: C.accent, minWidth: 20, textAlign: "center"
+                  }}>
+                    {i + 1}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.txt1, lineHeight: 1.5, marginBottom: 4 }}>
+                      {a.title}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 11, color: C.txt3 }}>
+                      <span>{a.sourceName}</span>
+                      <span>·</span>
+                      <span>{relTime(a.publishedAt)}</span>
+                      {a.isBreaking && (
+                        <>
+                          <span>·</span>
+                          <span style={{ background: C.breaking, color: "#fff", padding: "1px 5px", borderRadius: 3, fontWeight: 700 }}>속보</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 28 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: C.txt1, marginBottom: 12 }}>🔑 관련 키워드</h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {report.relatedKeywords.map((k, i) => (
+            <span key={i} style={{
+              background: C.surface, border: `1px solid ${C.border}`,
+              padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+              color: C.txt2, display: "inline-flex", alignItems: "center", gap: 4
+            }}>
+              {k.word}
+              <span style={{ color: C.accent, fontWeight: 700 }}>{k.count}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 28 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: C.txt1, marginBottom: 12 }}>📊 언론사별 보도</h3>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {report.sourceStats.map(s => (
+            <span key={s.name} style={{
+              background: C.surface, border: `1px solid ${C.border}`,
+              borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 600, color: C.txt2,
+            }}>
+              {s.name} <span style={{ color: C.accent, fontWeight: 700 }}>{s.count}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {insight && (
+        <>
+          <div style={{ marginBottom: 28 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: C.txt1, marginBottom: 12 }}>💡 여론 분석</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div style={{
+                background: "#F0FDF4", border: "1px solid #86EFAC",
+                borderRadius: 10, padding: "14px", textAlign: "center"
+              }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: "#15803D" }}>
+                  {insight.sentimentSummary.positive}%
+                </div>
+                <div style={{ fontSize: 11, color: "#15803D", fontWeight: 600, marginTop: 4 }}>긍정</div>
+              </div>
+              <div style={{
+                background: "#F8FAFC", border: "1px solid #CBD5E1",
+                borderRadius: 10, padding: "14px", textAlign: "center"
+              }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: "#334155" }}>
+                  {insight.sentimentSummary.neutral}%
+                </div>
+                <div style={{ fontSize: 11, color: "#334155", fontWeight: 600, marginTop: 4 }}>중립</div>
+              </div>
+              <div style={{
+                background: "#FEF2F2", border: "1px solid #FECACA",
+                borderRadius: 10, padding: "14px", textAlign: "center"
+              }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: "#DC2626" }}>
+                  {insight.sentimentSummary.negative}%
+                </div>
+                <div style={{ fontSize: 11, color: "#DC2626", fontWeight: 600, marginTop: 4 }}>부정</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 28 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: C.txt1, marginBottom: 12 }}>🎯 핵심 이슈</h3>
+            <div style={{
+              background: C.surface, border: `1px solid ${C.border}`,
+              borderRadius: 10, padding: "14px", fontSize: 13, lineHeight: 1.7,
+              color: C.txt2, whiteSpace: "pre-wrap"
+            }}>
+              {insight.aiInsight}
+            </div>
+          </div>
+
+          {insight.sourceAnalysis?.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: C.txt1, marginBottom: 12 }}>📰 언론사별 논조</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {insight.sourceAnalysis.map(s => (
+                  <div key={s.source} style={{
+                    background: C.surface, border: `1px solid ${C.border}`,
+                    borderRadius: 8, padding: "12px", fontSize: 12
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontWeight: 600, color: C.txt1 }}>
+                      <span>{s.source}</span>
+                      <span style={{ color: C.txt3 }}>({s.total}건)</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 4, height: 6, borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ flex: s.positive, background: "#22C55E" }} title={`긍정 ${s.positive}%`} />
+                      <div style={{ flex: s.neutral, background: "#E2E8F0" }} title={`중립 ${s.neutral}%`} />
+                      <div style={{ flex: s.negative, background: "#EF4444" }} title={`부정 ${s.negative}%`} />
+                    </div>
+                    <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 11, color: C.txt3 }}>
+                      <span>😊 {s.positive}%</span>
+                      <span>😐 {s.neutral}%</span>
+                      <span>😞 {s.negative}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function EmptyReport({ label }) {
+  return (
+    <div style={{ textAlign: "center", padding: "80px 20px", color: C.txt3 }}>
+      <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: C.txt2, marginBottom: 8 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 13, color: C.txt3 }}>
+        준비 중입니다
+      </div>
+    </div>
+  );
+}
+
 export default function Report() {
   const [date, setDate] = useState(todayStr());
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [gwangjaeReport, setGwangjaeReport] = useState(null);
+  const [gwangjaeLoading, setGwangjaeLoading] = useState(false);
+  const [gwangjaeErr, setGwangjaeErr] = useState("");
+  const [gwangjaeInsight, setGwangjaeInsight] = useState(null);
+  const [activeTab, setActiveTab] = useState("comprehensive");
   const isMobile = useIsMobile();
 
   const fetchReport = async (d = date) => {
@@ -279,7 +548,41 @@ export default function Report() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchReport(); }, [date]);
+  const fetchGwangjaeReport = async (d = date) => {
+    setGwangjaeLoading(true); setGwangjaeErr(""); setGwangjaeReport(null); setGwangjaeInsight(null);
+    try {
+      const res = await fetch(`/api/report/gwangjae?date=${d}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setGwangjaeReport(data);
+      // 인사이트도 함께 로드
+      fetchGwangjaeInsight(d);
+    } catch (e) { setGwangjaeErr(e.message); }
+    setGwangjaeLoading(false);
+  };
+
+  const fetchGwangjaeInsight = async (d = date) => {
+    try {
+      const res = await fetch(`/api/report/gwangjae/insight?date=${d}`);
+      const data = await res.json();
+      if (res.ok) setGwangjaeInsight(data);
+    } catch (e) {
+      console.warn("인사이트 로드 실패:", e.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchReport();
+    // date 변경 시 gwangjae 탭도 초기화
+    setGwangjaeReport(null);
+    setGwangjaeErr("");
+  }, [date]);
+
+  useEffect(() => {
+    if (activeTab === "gwangjae" && !gwangjaeReport && !gwangjaeLoading && !gwangjaeErr) {
+      fetchGwangjaeReport();
+    }
+  }, [activeTab, date]);
 
   const sortedCats = report
     ? [
@@ -293,12 +596,11 @@ export default function Report() {
       fontFamily: "'Apple SD Gothic Neo','Pretendard',system-ui,sans-serif",
       background: C.bg, minHeight: "100vh",
     }}>
-
       <Nav current="/report" />
 
       <div style={{ maxWidth: 820, margin: "0 auto", padding: isMobile ? "16px 12px 64px" : "24px 20px 80px" }}>
 
-        {/* 페이지 헤더 */}
+        {/* 헤더 */}
         <div style={{
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
@@ -307,7 +609,7 @@ export default function Report() {
         }}>
           <div>
             <h1 style={{ margin: 0, fontSize: isMobile ? 19 : 22, fontWeight: 900, color: C.txt1, letterSpacing: -.5 }}>
-              종합 뉴스 리포트
+              뉴스 리포트
             </h1>
             {report && (
               <p style={{ margin: "5px 0 0", fontSize: 12, color: C.txt2 }}>
@@ -336,7 +638,34 @@ export default function Report() {
           </div>
         </div>
 
-        {/* 언론사별 수집 현황 */}
+        {/* 탭 내비게이션 */}
+        <div style={{
+          display: "flex", gap: 4, marginBottom: 20, overflowX: "auto", paddingBottom: 4,
+          borderBottom: `2px solid ${C.border}`,
+        }}>
+          {TABS.map(tab => (
+            <button key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                flex: isMobile ? "0 1 auto" : "auto",
+                minWidth: isMobile ? 100 : 140,
+                padding: "10px 16px",
+                border: "none",
+                background: activeTab === tab.id ? C.accent : "transparent",
+                color: activeTab === tab.id ? "#fff" : C.txt2,
+                fontWeight: activeTab === tab.id ? 700 : 600,
+                fontSize: 13,
+                borderRadius: "6px 6px 0 0",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "all .2s",
+              }}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 언론사별 현황 */}
         {report && (
           <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
             {report.sourceStats.map(s => (
@@ -366,80 +695,102 @@ export default function Report() {
           </div>
         )}
 
-        {report && !loading && (<>
+        {/* 탭 콘텐츠 */}
+        {!loading && report && (
+          <>
+            {activeTab === "comprehensive" && (
+              <div>
+                <div style={{ marginBottom: 32 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 4, height: 20, background: C.gold, borderRadius: 2 }} />
+                    <h2 style={{ margin: 0, fontSize: isMobile ? 15 : 17, fontWeight: 900, color: C.txt1 }}>
+                      종합 주요기사 TOP 10
+                    </h2>
+                    <span style={{ fontSize: 11, color: C.txt3 }}>중복제거 · 가중치 적용</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 7 : 8 }}>
+                    {report.top10.map((a, i) => (
+                      <TopArticleCard key={i} article={a} rank={i + 1} isMobile={isMobile} />
+                    ))}
+                  </div>
+                </div>
 
-          {/* 종합 TOP 10 */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 4, height: 20, background: C.gold, borderRadius: 2 }} />
-              <h2 style={{ margin: 0, fontSize: isMobile ? 15 : 17, fontWeight: 900, color: C.txt1 }}>
-                종합 주요기사 TOP 10
-              </h2>
-              <span style={{ fontSize: 11, color: C.txt3 }}>중복제거 · 가중치 적용</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 7 : 8 }}>
-              {report.top10.map((a, i) => (
-                <TopArticleCard key={i} article={a} rank={i + 1} isMobile={isMobile} />
-              ))}
-            </div>
-          </div>
+                <div style={{ height: 1, background: C.border, margin: "0 0 28px" }} />
 
-          {/* 구분선 */}
-          <div style={{ height: 1, background: C.border, margin: "0 0 28px" }} />
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 4, height: 20, background: C.accent, borderRadius: 2 }} />
+                    <h2 style={{ margin: 0, fontSize: isMobile ? 15 : 17, fontWeight: 900, color: C.txt1 }}>
+                      카테고리별 주요기사
+                    </h2>
+                    <span style={{ fontSize: 11, color: C.txt3 }}>최대 10건</span>
+                  </div>
 
-          {/* 카테고리별 */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 4, height: 20, background: C.accent, borderRadius: 2 }} />
-              <h2 style={{ margin: 0, fontSize: isMobile ? 15 : 17, fontWeight: 900, color: C.txt1 }}>
-                카테고리별 주요기사
-              </h2>
-              <span style={{ fontSize: 11, color: C.txt3 }}>최대 10건</span>
-            </div>
+                  {isMobile && (
+                    <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, marginBottom: 14 }}>
+                      {sortedCats.map(cat => {
+                        const c = CAT_COLORS[cat] || { dot: "#64748B" };
+                        return (
+                          <button key={cat}
+                            onClick={() => document.getElementById(`cat-${cat}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                            style={{
+                              flexShrink: 0, border: `1px solid ${C.border}`,
+                              background: C.surface, padding: "6px 11px",
+                              borderRadius: 20, fontSize: 12, fontWeight: 600,
+                              color: C.txt2, cursor: "pointer",
+                              display: "flex", alignItems: "center", gap: 5,
+                            }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: c.dot }} />
+                            {cat}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
-            {/* 모바일: 카테고리 빠른 점프 */}
-            {isMobile && (
-              <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 8, marginBottom: 14 }}>
-                {sortedCats.map(cat => {
-                  const c = CAT_COLORS[cat] || { dot: "#64748B" };
-                  return (
-                    <button key={cat}
-                      onClick={() => document.getElementById(`cat-${cat}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                      style={{
-                        flexShrink: 0, border: `1px solid ${C.border}`,
-                        background: C.surface, padding: "6px 11px",
-                        borderRadius: 20, fontSize: 12, fontWeight: 600,
-                        color: C.txt2, cursor: "pointer",
-                        display: "flex", alignItems: "center", gap: 5,
-                      }}>
-                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: c.dot }} />
-                      {cat}
-                    </button>
-                  );
-                })}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {sortedCats.map((cat, i) => (
+                      <div key={cat} id={`cat-${cat}`}>
+                        <CategorySection
+                          category={cat}
+                          articles={report.categories[cat]}
+                          defaultOpen={!isMobile && i < 3}
+                          isMobile={isMobile}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 32, textAlign: "center", fontSize: 11, color: C.txt3, lineHeight: 1.8 }}>
+                  리포트 생성: {fmtDateFull(report.generatedAt)}<br />
+                  {report.totalArticles.toLocaleString()}개 기사 · {report.totalGroups.toLocaleString()}개 주제 그룹
+                </div>
               </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {sortedCats.map((cat, i) => (
-                <div key={cat} id={`cat-${cat}`}>
-                  <CategorySection
-                    category={cat}
-                    articles={report.categories[cat]}
-                    defaultOpen={!isMobile && i < 3}
-                    isMobile={isMobile}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+            {activeTab === "telegram" && <TelegramReport report={report} date={date} />}
 
-          {/* 하단 메타 */}
-          <div style={{ marginTop: 32, textAlign: "center", fontSize: 11, color: C.txt3, lineHeight: 1.8 }}>
-            리포트 생성: {fmtDateFull(report.generatedAt)}<br />
-            {report.totalArticles.toLocaleString()}개 기사 · {report.totalGroups.toLocaleString()}개 주제 그룹
-          </div>
-        </>)}
+            {activeTab === "jaeming" && <EmptyReport label="이재명" />}
+            {activeTab === "gwangjae" && (
+              gwangjaeLoading ? (
+                <div style={{ textAlign: "center", padding: "72px 0" }}>
+                  <div style={{ width: 38, height: 38, border: `3px solid ${C.border}`, borderTop: `3px solid ${C.accent}`, borderRadius: "50%", margin: "0 auto 14px", animation: "spin 1s linear infinite" }} />
+                  <div style={{ fontSize: 14, color: C.txt2, fontWeight: 600 }}>기사 분석 중...</div>
+                </div>
+              ) : gwangjaeErr ? (
+                <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "14px 16px", color: C.breaking, fontSize: 13, fontWeight: 600 }}>
+                  ⚠️ {gwangjaeErr}
+                </div>
+              ) : gwangjaeReport ? (
+                <GwangjaeReport report={gwangjaeReport} date={date} insight={gwangjaeInsight} />
+              ) : (
+                <EmptyReport label="이광재 관련 기사가 없습니다" />
+              )
+            )}
+            {activeTab === "trump" && <EmptyReport label="트럼프" />}
+          </>
+        )}
       </div>
 
       <style>{`
