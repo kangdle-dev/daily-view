@@ -71,3 +71,16 @@ export async function del(key) {
 export function isRedisAvailable() {
   return isConnected && !!redisClient;
 }
+
+export async function seedData(key, defaultValue) {
+  if (!isRedisAvailable()) return;
+  try {
+    const existing = await get(key);
+    if (!existing) {
+      await set(key, defaultValue, 0); // TTL 0 = 무제한
+      console.log(`[redis] ${key} 초기 데이터 로드됨`);
+    }
+  } catch (err) {
+    console.warn(`[redis] seedData(${key}) failed:`, err.message);
+  }
+}

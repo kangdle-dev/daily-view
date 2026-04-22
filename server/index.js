@@ -17,7 +17,7 @@ import { initAccounts, authenticate, getAccounts, addAccount, updateAccount, rem
 import { createSession, destroySession, authGuard, requireRole, checkRateLimit, resetRateLimit } from "./authMiddleware.js";
 import { getSettings, saveSettings } from "./settingsStore.js";
 import { restartScheduler } from "./scheduler.js";
-import { initRedis } from "./redisStore.js";
+import { initRedis, seedData } from "./redisStore.js";
 import Parser from "rss-parser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -121,6 +121,9 @@ if (!fs.existsSync(feedsPath)) {
 
 // ─── Redis 초기화 ────────────────────────────────────────
 await initRedis();
+
+// Redis에 기본 feeds 로드 (없으면 생성)
+await seedData("feeds:all", { sources: DEFAULT_FEEDS.sources });
 
 // ─── 보안: CORS (프로덕션에서는 동일 오리진만 허용) ──────
 const ALLOWED_ORIGINS = IS_PROD
