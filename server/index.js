@@ -470,6 +470,14 @@ app.post("/api/settings", requireRole("admin"), async (req, res) => {
   }
 });
 
+// ─── Telegram HTML 이스케이프 ────────────────────────────
+function escapeHtml(text) {
+  return String(text ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 // ─── Telegram 리포트 발송 ────────────────────────────────
 app.post("/api/telegram/send-report", async (req, res) => {
   try {
@@ -485,7 +493,7 @@ app.post("/api/telegram/send-report", async (req, res) => {
     ];
 
     report.top10.slice(0, 5).forEach((a, i) => {
-      msgLines.push(`${i + 1}. <a href="${a.url}">${a.title}</a>`);
+      msgLines.push(`${i + 1}. <a href="${a.url}">${escapeHtml(a.title)}</a>`);
     });
 
     msgLines.push(``, `<b>📂 카테고리별 중요기사</b>`);
@@ -494,7 +502,7 @@ app.post("/api/telegram/send-report", async (req, res) => {
       const articles = report.categories[cat] || [];
       msgLines.push(``, `<b>${cat}</b>`);
       articles.slice(0, 3).forEach((a, i) => {
-        msgLines.push(`${i + 1}. <a href="${a.url}">${a.title}</a>`);
+        msgLines.push(`${i + 1}. <a href="${a.url}">${escapeHtml(a.title)}</a>`);
       });
     });
 
@@ -529,7 +537,7 @@ app.post("/api/telegram/send-gwangjae-report", async (req, res) => {
     ];
 
     report.top15.slice(0, 10).forEach((a, i) => {
-      msgLines.push(`${i + 1}. <a href="${a.url}">${a.title}</a>`);
+      msgLines.push(`${i + 1}. <a href="${a.url}">${escapeHtml(a.title)}</a>`);
     });
 
     msgLines.push(``, `<b>🔑 관련 키워드</b>`);
