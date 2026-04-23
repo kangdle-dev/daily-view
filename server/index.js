@@ -12,6 +12,7 @@ import { startScheduler } from "./scheduler.js";
 import { collectAll } from "./collectors/index.js";
 import { generateReport } from "./report.js";
 import { generateInsight, generateAIInsight } from "./insight.js";
+import { generateNewspimSuggestions } from "./newspimSuggestions.js";
 import { getCustomSources, addCustomSource, updateCustomSource, removeCustomSource } from "./feedStore.js";
 import { initAccounts, authenticate, getAccounts, addAccount, updateAccount, removeAccount } from "./accountStore.js";
 import { createSession, destroySession, authGuard, requireRole, checkRateLimit, resetRateLimit } from "./authMiddleware.js";
@@ -19,7 +20,7 @@ import { getSettings, saveSettings } from "./settingsStore.js";
 import { restartScheduler } from "./scheduler.js";
 import { initRedis, seedData } from "./redisStore.js";
 import { sendTelegramMessage } from "./telegramService.js";
-import { getReport, saveReport, deleteAllReports } from "./reportStore.js";
+import { getReport, saveReport } from "./reportStore.js";
 import { generatePersonReport } from "./personReport.js";
 import { generatePersonInsight } from "./personInsight.js";
 import Parser from "rss-parser";
@@ -315,6 +316,54 @@ app.get("/api/report/gwangjae/insight", async (req, res) => {
   }
 });
 
+// ─── 범용 인물 리포트 ──────────────────────────────────────
+app.get("/api/report/person", async (req, res) => {
+  const { date, keywords } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+  if (!keywords || !keywords.trim())
+    return res.status(400).json({ error: "keywords 파라미터 필요 (쉼표로 구분, 예: 이재명,민주당)" });
+
+  try {
+    const keywordList = keywords.split(",").map(k => k.trim()).filter(k => k);
+    const report = await generatePersonReport(date, keywordList);
+    if (!report)
+      return res.status(404).json({ error: `${keywords} 관련 기사가 없습니다.` });
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 범용 인물 인사이트 ────────────────────────────────────
+app.get("/api/report/person/insight", async (req, res) => {
+  const { date, keywords, personName } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+  if (!keywords || !keywords.trim())
+    return res.status(400).json({ error: "keywords 파라미터 필요" });
+
+  try {
+    const articles = await getArticles(date);
+    if (!articles?.length) return res.status(404).json({ error: "기사가 없습니다." });
+
+    const keywordList = keywords.split(",").map(k => k.trim()).filter(k => k);
+    const filtered = articles.filter(a => {
+      const text = (a.title || "") + " " + (a.content || "") + " " + (a.summary || "");
+      return keywordList.some(kw => text.includes(kw));
+    });
+
+    if (!filtered.length)
+      return res.status(404).json({ error: `${keywords} 관련 기사가 없습니다.` });
+
+    const insight = await generatePersonInsight(date, personName || keywords, filtered);
+    res.json(insight);
+  } catch (err) {
+    console.error("[person/insight] 오류:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── 수집 SSE ──────────────────────────────────────────────
 app.get("/api/collect/stream", async (req, res) => {
   const { source = "all" } = req.query;
@@ -390,6 +439,21 @@ app.get("/api/insight/ai", async (req, res) => {
     if (!articles?.length) return res.status(404).json({ error: "수집 기사가 없습니다." });
     res.json({ text: await generateAIInsight(articles, date) });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── 뉴스핌 AI 기사 제목 제안 ──────────────────────────────
+app.get("/api/newspim/suggestions", async (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+  try {
+    const result = await generateNewspimSuggestions(date);
+    if (!result) return res.status(404).json({ error: "해당 날짜의 수집 기사가 없습니다." });
+    res.json(result);
+  } catch (err) {
+    console.error("[newspim/suggestions] 오류:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

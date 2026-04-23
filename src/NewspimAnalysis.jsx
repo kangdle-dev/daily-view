@@ -155,11 +155,156 @@ function computeAnalysis(insight) {
   };
 }
 
+// ── AI 기사 제안 탭 ──────────────────────────────────────────
+function SuggestionsTab({ date }) {
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
+  const [generated, setGenerated] = useState(false);
+
+  const generate = async () => {
+    setLoading(true); setError(""); setData(null);
+    try {
+      const res = await fetch(`/api/newspim/suggestions?date=${date}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setData(json);
+      setGenerated(true);
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  // 날짜 변경 시 초기화
+  useEffect(() => { setData(null); setGenerated(false); setError(""); }, [date]);
+
+  if (!generated && !loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 20px" }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>✍️</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: C.txt1, marginBottom: 8 }}>
+          AI 기사 제목 생성
+        </div>
+        <div style={{ fontSize: 13, color: C.txt2, marginBottom: 24, lineHeight: 1.7 }}>
+          뉴스핌이 다루지 못했거나 부족하게 다룬 분야를 분석하여<br />
+          카테고리별로 기사 제목 10개씩 제안합니다.
+        </div>
+        <button onClick={generate} style={{
+          background: C.accent, color: "#fff", border: "none",
+          padding: "12px 28px", borderRadius: 8, fontWeight: 700,
+          fontSize: 14, cursor: "pointer",
+        }}>
+          AI 기사 제목 생성하기
+        </button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "80px 0" }}>
+        <div style={{ width: 36, height: 36, border: `3px solid ${C.border}`, borderTop: `3px solid ${C.accent}`, borderRadius: "50%", margin: "0 auto 14px", animation: "spin 1s linear infinite" }} />
+        <div style={{ fontSize: 14, color: C.txt2 }}>AI가 기사 제목을 생성 중입니다...</div>
+        <div style={{ fontSize: 12, color: C.txt3, marginTop: 6 }}>카테고리별 분석 후 제목을 생성합니다 (10~20초 소요)</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 20px" }}>
+        <div style={{ fontSize: 13, color: C.bad, marginBottom: 16 }}>❌ {error}</div>
+        <button onClick={generate} style={{
+          background: C.accent, color: "#fff", border: "none",
+          padding: "10px 22px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer",
+        }}>다시 시도</button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <div>
+      {/* 요약 헤더 */}
+      <div style={{
+        background: "#F0FDF4", border: "1px solid #BBF7D0",
+        borderRadius: 10, padding: "12px 16px", marginBottom: 16,
+        display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap",
+      }}>
+        <div style={{ fontSize: 12, color: "#15803D", fontWeight: 600 }}>
+          📅 {date} 기준 &nbsp;·&nbsp; 뉴스핌 수집 {data.newspimTotal}건 &nbsp;·&nbsp; {data.categories.length}개 카테고리 분석
+        </div>
+        <button onClick={generate} style={{
+          marginLeft: "auto", background: "transparent", border: `1px solid #16A34A`,
+          color: "#16A34A", padding: "5px 12px", borderRadius: 6,
+          fontWeight: 700, fontSize: 12, cursor: "pointer",
+        }}>↺ 재생성</button>
+      </div>
+
+      {/* 분석 컨텍스트 */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.txt2, marginBottom: 8 }}>📊 분석 대상 카테고리</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {data.analysisContext.map(c => (
+            <span key={c.category} style={{
+              background: c.share < 20 ? "#FEF2F2" : "#F0F9FF",
+              border: `1px solid ${c.share < 20 ? "#FECACA" : "#BAE6FD"}`,
+              color: c.share < 20 ? "#DC2626" : "#0369A1",
+              padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+            }}>
+              {c.category} <span style={{ opacity: 0.7 }}>{c.share}%</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* 카테고리별 기사 제목 */}
+      {data.categories.map(cat => (
+        <div key={cat.category} style={{
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: 10, marginBottom: 12, overflow: "hidden",
+        }}>
+          <div style={{
+            background: C.navy, padding: "8px 14px",
+            display: "flex", alignItems: "center", gap: 8,
+          }}>
+            <div style={{ width: 3, height: 13, background: "#FFD600", borderRadius: 2, flexShrink: 0 }} />
+            <span style={{ color: "#fff", fontWeight: 800, fontSize: 13 }}>{cat.category}</span>
+            <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11, marginLeft: "auto" }}>
+              {cat.articles.length}건
+            </span>
+          </div>
+          <div style={{ padding: "10px 14px" }}>
+            {cat.articles.map((title, i) => (
+              <div key={i} style={{
+                display: "flex", gap: 10, alignItems: "flex-start",
+                padding: "7px 0",
+                borderBottom: i < cat.articles.length - 1 ? `1px solid ${C.border}` : "none",
+              }}>
+                <span style={{
+                  flexShrink: 0, fontSize: 11, fontWeight: 800,
+                  color: C.accent, minWidth: 18, textAlign: "center", paddingTop: 2,
+                }}>{i + 1}</span>
+                <span style={{ fontSize: 13, color: C.txt1, lineHeight: 1.6, fontWeight: 500 }}>{title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <div style={{ textAlign: "center", fontSize: 10, color: C.txt3, paddingTop: 4 }}>
+        AI 생성 기사 제목 &nbsp;·&nbsp; {new Date(data.generatedAt).toLocaleTimeString("ko-KR")} 생성
+      </div>
+    </div>
+  );
+}
+
 export default function NewspimAnalysis() {
   const [date, setDate]       = useState(todayStr());
   const [insight, setInsight] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+  const [activeTab, setActiveTab] = useState("analysis");
   const isMobile = useIsMobile();
 
   const fetchData = async (d) => {
@@ -196,17 +341,39 @@ export default function NewspimAnalysis() {
         </button>
       </div>
 
+      {/* ── 탭 메뉴 ── */}
+      <div className="no-print" style={{ background: "#1E293B", borderBottom: "1px solid #334155" }}>
+        <div style={{ maxWidth: 820, margin: "0 auto", padding: "0 20px", display: "flex" }}>
+          {[
+            { id: "analysis", label: "📊 분석" },
+            { id: "suggestions", label: "✍️ AI 기사 생성" },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+              padding: "10px 18px", background: "transparent", border: "none",
+              borderBottom: activeTab === tab.id ? "2px solid #14B8A6" : "2px solid transparent",
+              color: activeTab === tab.id ? "#14B8A6" : "#94A3B8",
+              fontWeight: activeTab === tab.id ? 800 : 600,
+              fontSize: 13, cursor: "pointer", transition: "all .2s",
+            }}>{tab.label}</button>
+          ))}
+        </div>
+      </div>
+
       {/* ── 콘텐츠 ── */}
       <div id="print-area" style={{ maxWidth: 820, margin: "0 auto", padding: isMobile ? "14px 12px 60px" : "20px 20px 60px" }}>
 
-        {loading && (
+        {/* AI 기사 생성 탭 */}
+        {activeTab === "suggestions" && <SuggestionsTab date={date} />}
+
+        {/* 분석 탭 */}
+        {activeTab === "analysis" && loading && (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
             <div style={{ width: 36, height: 36, border: `3px solid ${C.border}`, borderTop: `3px solid ${C.accent}`, borderRadius: "50%", margin: "0 auto 14px", animation: "spin 1s linear infinite" }} />
             <div style={{ fontSize: 14, color: C.txt2 }}>분석 데이터 불러오는 중...</div>
           </div>
         )}
 
-        {!loading && error && (
+        {activeTab === "analysis" && !loading && error && (
           <div style={{ textAlign: "center", padding: "60px 20px", background: C.surface, borderRadius: 14, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>📭</div>
             <div style={{ fontWeight: 700, fontSize: 15, color: C.txt1, marginBottom: 8 }}>{error}</div>
@@ -214,7 +381,7 @@ export default function NewspimAnalysis() {
           </div>
         )}
 
-        {!loading && !error && insight && !analysis && (
+        {activeTab === "analysis" && !loading && !error && insight && !analysis && (
           <div style={{ textAlign: "center", padding: "60px 20px", background: C.surface, borderRadius: 14, border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
             <div style={{ fontWeight: 700, fontSize: 15, color: C.txt1, marginBottom: 8 }}>뉴스핌 수집 데이터가 없습니다</div>
@@ -222,7 +389,7 @@ export default function NewspimAnalysis() {
           </div>
         )}
 
-        {!loading && !error && analysis && (
+        {activeTab === "analysis" && !loading && !error && analysis && (
           <>
             {/* ─ 헤더 ─ */}
             <div style={{ background: C.navy, color: "#fff", borderRadius: 10, padding: "14px 20px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>

@@ -68,6 +68,7 @@ export async function collectCustomSource(sourceKey, skipUrls = new Set()) {
           console.log(`  ↩ 중복 스킵: ${(item.title || "").slice(0, 40)}`);
           continue;
         }
+        skipUrls.add(url); // 배치 내 다른 카테고리 피드 중복 방지
 
         await new Promise(r => setTimeout(r, 350));
 

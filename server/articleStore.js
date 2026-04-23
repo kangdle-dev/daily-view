@@ -53,10 +53,15 @@ export async function getArticles(date, source = null) {
   });
 
   const all = [];
+  const seenUrls = new Set();
   for (const f of targets) {
     try {
       const raw = await fs.readFile(path.join(ARTICLES_DIR, f), "utf-8");
-      all.push(...JSON.parse(raw));
+      for (const a of JSON.parse(raw)) {
+        if (a.url && seenUrls.has(a.url)) continue;
+        if (a.url) seenUrls.add(a.url);
+        all.push(a);
+      }
     } catch {}
   }
   return all;
