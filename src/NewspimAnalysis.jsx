@@ -156,6 +156,225 @@ function computeAnalysis(insight) {
 }
 
 // ── AI 기사 제안 탭 ──────────────────────────────────────────
+// ── 방법론 섹션 래퍼 ────────────────────────────────────────
+function MSection({ step, title, children }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        {step && (
+          <span style={{
+            background: C.navy, color: "#FFD600", fontWeight: 900,
+            fontSize: 12, width: 26, height: 26, borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>{step}</span>
+        )}
+        <span style={{ fontSize: 14, fontWeight: 800, color: C.txt1 }}>{title}</span>
+      </div>
+      <div style={{ paddingLeft: step ? 36 : 0 }}>{children}</div>
+    </div>
+  );
+}
+
+function MBox({ children, color = C.border, bg = "#F8FAFC" }) {
+  return (
+    <div style={{
+      background: bg, border: `1px solid ${color}`,
+      borderRadius: 8, padding: "12px 14px", fontSize: 13,
+      color: C.txt2, lineHeight: 1.8,
+    }}>{children}</div>
+  );
+}
+
+function MTag({ children, color = C.accent }) {
+  return (
+    <code style={{
+      background: "#EFF6FF", color, fontFamily: "monospace",
+      fontSize: 12, fontWeight: 700, padding: "1px 6px",
+      borderRadius: 4, whiteSpace: "nowrap",
+    }}>{children}</code>
+  );
+}
+
+function MethodologyTab() {
+  return (
+    <div style={{ maxWidth: 720 }}>
+
+      {/* 헤더 */}
+      <div style={{
+        background: C.navy, color: "#fff", borderRadius: 10,
+        padding: "16px 20px", marginBottom: 20,
+      }}>
+        <div style={{ fontSize: 10, color: "#6EE7B7", fontWeight: 700, letterSpacing: 2, marginBottom: 6 }}>
+          DOCUMENTATION
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 6 }}>
+          AI 기사 발제 생성 방법론
+        </div>
+        <div style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.7 }}>
+          뉴스핌이 다루지 못한 기사를 자동으로 분석하고,<br />
+          전문기자 역할 기반의 AI가 발제 제목을 생성하는 과정을 설명합니다.
+        </div>
+      </div>
+
+      {/* 전체 흐름 */}
+      <MSection step={null} title="⚡ 전체 처리 흐름">
+        <div style={{
+          display: "flex", alignItems: "center", gap: 4,
+          flexWrap: "wrap", marginBottom: 4,
+        }}>
+          {[
+            "기사 수집", "뉴스핌/타사 분리", "카테고리 정규화",
+            "미보도 분류", "우선순위 선정", "AI 발제 생성",
+          ].map((step, i, arr) => (
+            <span key={step} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{
+                background: "#EFF6FF", color: C.accent,
+                padding: "5px 10px", borderRadius: 6,
+                fontSize: 12, fontWeight: 700,
+              }}>{step}</span>
+              {i < arr.length - 1 && (
+                <span style={{ color: C.txt3, fontSize: 14 }}>→</span>
+              )}
+            </span>
+          ))}
+        </div>
+      </MSection>
+
+      <div style={{ height: 1, background: C.border, marginBottom: 20 }} />
+
+      {/* STEP 1 */}
+      <MSection step="1" title="기사 수집 및 분리">
+        <MBox>
+          매일 수집된 전체 기사를 <MTag>source === "newspim"</MTag> 기준으로
+          뉴스핌 기사와 타사 기사로 분리합니다.<br />
+          <span style={{ fontSize: 12, color: C.txt3 }}>
+            예) 오늘 전체 4,299건 → 뉴스핌 189건 / 타사 4,110건
+          </span>
+        </MBox>
+      </MSection>
+
+      {/* STEP 2 */}
+      <MSection step="2" title="카테고리 정규화">
+        <MBox>
+          언론사마다 카테고리 표기가 달라 대분류로 통합합니다.
+          <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {[
+              ["금융 · 마켓", "→", "증권·금융"],
+              ["세계 · 글로벌", "→", "국제"],
+              ["연예", "→", "문화"],
+            ].map(([from, arrow, to]) => (
+              <span key={from} style={{
+                background: "#fff", border: `1px solid ${C.border}`,
+                borderRadius: 6, padding: "4px 10px", fontSize: 12,
+                display: "flex", gap: 6, alignItems: "center",
+              }}>
+                <span style={{ color: C.txt3 }}>{from}</span>
+                <span style={{ color: C.accent }}>{arrow}</span>
+                <span style={{ fontWeight: 700, color: C.txt1 }}>{to}</span>
+              </span>
+            ))}
+          </div>
+        </MBox>
+      </MSection>
+
+      {/* STEP 3 */}
+      <MSection step="3" title="미보도 기사 분류">
+        <MBox>
+          타사 기사 제목에서 <strong>3자 이상의 핵심 단어</strong>를 추출해,
+          뉴스핌 기사 제목에 해당 단어가 없으면 <MTag color="#DC2626">미보도</MTag>로 분류합니다.
+          <div style={{ marginTop: 10, background: "#FEF2F2", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#991B1B" }}>
+            예) 타사: "한동훈 의원직 사퇴설 부상"<br />
+            → 핵심 단어 추출: ["한동훈", "의원직", "사퇴설"]<br />
+            → 뉴스핌 기사에 위 단어 포함 없음 → 미보도 처리
+          </div>
+        </MBox>
+      </MSection>
+
+      {/* STEP 4 */}
+      <MSection step="4" title="분석 대상 카테고리 우선순위 선정">
+        <MBox>
+          뉴스핌 보도 공백이 큰 카테고리를 우선 분석합니다.
+          <div style={{ marginTop: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.txt1, fontWeight: 700, marginBottom: 6 }}>
+              우선순위 점수
+              <span style={{
+                background: "#EFF6FF", color: C.accent,
+                fontFamily: "monospace", padding: "2px 8px", borderRadius: 4, fontWeight: 700,
+              }}>= (100 − 점유율%) + 미보도 기사 수</span>
+            </div>
+            <div style={{ fontSize: 12, color: C.txt3 }}>
+              점유율이 낮고 미보도 기사가 많을수록 먼저 발제 생성 대상이 됩니다.<br />
+              최대 7개 카테고리, 카테고리당 기사 3건 이상인 경우만 선정
+            </div>
+          </div>
+        </MBox>
+      </MSection>
+
+      {/* STEP 5 */}
+      <MSection step="5" title="전문기자 역할 기반 AI 생성">
+        <MBox>
+          카테고리별로 <strong>별도의 AI 호출</strong>을 병렬로 실행합니다.
+          각 호출마다 해당 분야 전문기자 역할을 부여합니다.
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+            {[
+              ["정치", "정치전문기자", "정치권 동향, 정책, 선거, 여야 관계"],
+              ["경제", "경제전문기자", "거시경제, 재정·금융정책, 기업경영"],
+              ["사회", "사회부기자", "사건·사고, 민생, 법원, 복지"],
+              ["국제", "국제부기자", "해외 정치·경제, 글로벌 이슈"],
+              ["산업", "산업부기자", "제조업, 유통, IT, 에너지"],
+              ["증권·금융", "증권·금융전문기자", "주식, 채권, 외환, 은행, 핀테크"],
+              ["부동산", "부동산전문기자", "아파트, 분양, 상업용 부동산"],
+            ].map(([cat, role, focus]) => (
+              <div key={cat} style={{
+                display: "flex", gap: 8, alignItems: "flex-start",
+                padding: "6px 0", borderBottom: `1px solid ${C.border}`,
+                fontSize: 12,
+              }}>
+                <span style={{
+                  background: C.navy, color: "#FFD600",
+                  padding: "2px 8px", borderRadius: 4, fontWeight: 700,
+                  flexShrink: 0, minWidth: 60, textAlign: "center",
+                }}>{cat}</span>
+                <span style={{ color: C.accent, fontWeight: 700, flexShrink: 0, minWidth: 110 }}>{role}</span>
+                <span style={{ color: C.txt3 }}>{focus}</span>
+              </div>
+            ))}
+          </div>
+        </MBox>
+      </MSection>
+
+      {/* STEP 6 */}
+      <MSection step="6" title="Few-shot 프롬프팅 (스타일 학습)">
+        <MBox>
+          AI에게 <strong>당일 실제 뉴스핌 기사 제목 5개</strong>를 예시로 제공합니다.
+          고정된 예시가 아닌 그날 실제 기사를 무작위 샘플링하므로,
+          날짜가 달라져도 항상 최신 뉴스핌 문체를 반영합니다.
+          <div style={{ marginTop: 10, background: "#F0FDF4", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#15803D", lineHeight: 1.8 }}>
+            <strong>효과:</strong> 구체적인 수치·기업명·인물명 자동 반영<br />
+            <strong>예시 없을 때:</strong> "[분석] 금리 동결 배경 분석"<br />
+            <strong>예시 있을 때:</strong> "[분석] SK하이닉스 153억 자사주 처분, 임원 보수 지급의 신호탄…'주가 방어' vs '주주 환원' 줄타기"
+          </div>
+        </MBox>
+      </MSection>
+
+      {/* 한계 및 유의사항 */}
+      <MSection step={null} title="⚠️ 유의사항">
+        <MBox color="#FECACA" bg="#FEF2F2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "#991B1B" }}>
+            <div>• 키워드 매칭 기반 미보도 분류이므로 완벽하지 않습니다. 유사한 내용이지만 표현이 다른 기사는 미보도로 오분류될 수 있습니다.</div>
+            <div>• AI가 생성한 발제는 취재 전 아이디어 수준입니다. 실제 사실 확인 및 취재 가능 여부는 기자가 판단해야 합니다.</div>
+            <div>• 뉴스핌 내부 편집 방침, 광고주 관계, 독점 취재 여부 등은 반영되지 않습니다.</div>
+          </div>
+        </MBox>
+      </MSection>
+
+      <div style={{ textAlign: "center", fontSize: 10, color: C.txt3, paddingTop: 8 }}>
+        Daily View · AI 기사 발제 생성 시스템 · Claude Haiku 기반
+      </div>
+    </div>
+  );
+}
+
 function SuggestionsTab({ date }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(false);
@@ -245,14 +464,16 @@ function SuggestionsTab({ date }) {
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.txt2, marginBottom: 8 }}>📊 분석 대상 카테고리</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {data.analysisContext.map(c => (
+          {data.categories.map(c => (
             <span key={c.category} style={{
-              background: c.share < 20 ? "#FEF2F2" : "#F0F9FF",
-              border: `1px solid ${c.share < 20 ? "#FECACA" : "#BAE6FD"}`,
-              color: c.share < 20 ? "#DC2626" : "#0369A1",
+              background: c.context?.share < 20 ? "#FEF2F2" : "#F0F9FF",
+              border: `1px solid ${c.context?.share < 20 ? "#FECACA" : "#BAE6FD"}`,
+              color: c.context?.share < 20 ? "#DC2626" : "#0369A1",
               padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
             }}>
-              {c.category} <span style={{ opacity: 0.7 }}>{c.share}%</span>
+              {c.category}
+              {c.role && <span style={{ opacity: 0.6, fontSize: 10 }}> · {c.role}</span>}
+              <span style={{ opacity: 0.7 }}> {c.context?.share}%</span>
             </span>
           ))}
         </div>
@@ -270,6 +491,17 @@ function SuggestionsTab({ date }) {
           }}>
             <div style={{ width: 3, height: 13, background: "#FFD600", borderRadius: 2, flexShrink: 0 }} />
             <span style={{ color: "#fff", fontWeight: 800, fontSize: 13 }}>{cat.category}</span>
+            {cat.role && (
+              <span style={{
+                background: "rgba(255,255,255,.12)", color: "#6EE7B7",
+                fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+              }}>{cat.role}</span>
+            )}
+            {cat.context && (
+              <span style={{ color: "rgba(255,255,255,.35)", fontSize: 10, marginLeft: 2 }}>
+                점유 {cat.context.share}%
+              </span>
+            )}
             <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11, marginLeft: "auto" }}>
               {cat.articles.length}건
             </span>
@@ -347,6 +579,7 @@ export default function NewspimAnalysis() {
           {[
             { id: "analysis", label: "📊 분석" },
             { id: "suggestions", label: "✍️ AI 기사 생성" },
+            { id: "methodology", label: "📖 기사생성방법론" },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               padding: "10px 18px", background: "transparent", border: "none",
@@ -364,6 +597,9 @@ export default function NewspimAnalysis() {
 
         {/* AI 기사 생성 탭 */}
         {activeTab === "suggestions" && <SuggestionsTab date={date} />}
+
+        {/* 기사생성방법론 탭 */}
+        {activeTab === "methodology" && <MethodologyTab />}
 
         {/* 분석 탭 */}
         {activeTab === "analysis" && loading && (

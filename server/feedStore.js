@@ -14,7 +14,7 @@ async function saveData(data) {
   if (!isRedisAvailable()) {
     throw new Error("Redis 연결이 필요합니다");
   }
-  await redisSet(REDIS_KEY, data);
+  await redisSet(REDIS_KEY, data, 0); // TTL 0 = 영구 저장
 }
 
 export async function getCustomSources() {

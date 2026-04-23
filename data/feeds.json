@@ -13,7 +13,7 @@
         {
           "url": "https://www.khan.co.kr/rss/rssdata/economy_news.xml",
           "mainCategory": "경제"
-        }, 
+        },
         {
           "url": "https://www.khan.co.kr/rss/rssdata/society_news.xml",
           "mainCategory": "사회"
@@ -36,7 +36,7 @@
         }
       ],
       "createdAt": "2026-04-20T00:00:00.000Z",
-      "updatedAt": "2026-04-20T06:07:01.085Z" 
+      "updatedAt": "2026-04-20T06:07:01.085Z"
     },
     {
       "id": "2",
@@ -265,6 +265,70 @@
         }
       ],
       "createdAt": "2026-04-20T06:16:04.186Z"
+    },
+    {
+      "id": "1776927311949",
+      "key": "donga",
+      "name": "동아일보",
+      "feeds": [
+        {
+          "url": "https://rss.donga.com/politics.xml",
+          "mainCategory": "정치"
+        },
+        {
+          "url": "https://rss.donga.com/economy.xml",
+          "mainCategory": "경제"
+        },
+        {
+          "url": "https://rss.donga.com/national.xml",
+          "mainCategory": "사회"
+        },
+        {
+          "url": "https://rss.donga.com/international.xml",
+          "mainCategory": "국제"
+        },
+        {
+          "url": "https://rss.donga.com/culture.xml",
+          "mainCategory": "문화"
+        },
+        {
+          "url": "https://rss.donga.com/sports.xml",
+          "mainCategory": "스포츠"
+        }
+      ],
+      "createdAt": "2026-04-23T06:55:11.951Z"
+    },
+    {
+      "id": "1776927311957",
+      "key": "hani",
+      "name": "한겨레",
+      "feeds": [
+        {
+          "url": "https://www.hani.co.kr/rss/politics/",
+          "mainCategory": "정치"
+        },
+        {
+          "url": "https://www.hani.co.kr/rss/economy/",
+          "mainCategory": "경제"
+        },
+        {
+          "url": "https://www.hani.co.kr/rss/society/",
+          "mainCategory": "사회"
+        },
+        {
+          "url": "https://www.hani.co.kr/rss/international/",
+          "mainCategory": "국제"
+        },
+        {
+          "url": "https://www.hani.co.kr/rss/culture/",
+          "mainCategory": "문화"
+        },
+        {
+          "url": "https://www.hani.co.kr/rss/sports/",
+          "mainCategory": "스포츠"
+        }
+      ],
+      "createdAt": "2026-04-23T06:55:11.956Z"
     }
   ]
 }
