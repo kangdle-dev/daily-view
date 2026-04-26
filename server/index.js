@@ -16,7 +16,7 @@ import { generateNewspimSuggestions } from "./newspimSuggestions.js";
 import { getCustomSources, addCustomSource, updateCustomSource, removeCustomSource } from "./feedStore.js";
 import { initAccounts, authenticate, getAccounts, addAccount, updateAccount, removeAccount } from "./accountStore.js";
 import { createSession, destroySession, authGuard, requireRole, checkRateLimit, resetRateLimit } from "./authMiddleware.js";
-import { getSettings, saveSettings } from "./settingsStore.js";
+import { getSettings, saveSettings, getArticlePrompts, saveArticlePrompts } from "./settingsStore.js";
 import { restartScheduler } from "./scheduler.js";
 import { initRedis, seedData } from "./redisStore.js";
 import { sendTelegramMessage } from "./telegramService.js";
@@ -531,6 +531,45 @@ app.post("/api/settings", requireRole("admin"), async (req, res) => {
     res.json({ ok: true, settings: updated });
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ─── 기사 작성 프롬프트 관리 ────────────────────────────────
+app.get("/api/settings/article-prompts", requireRole("admin"), async (_req, res) => {
+  try { res.json(await getArticlePrompts()); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/settings/article-prompts", requireRole("admin"), async (req, res) => {
+  try { res.json(await saveArticlePrompts(req.body)); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ─── 기사 초안 생성 ──────────────────────────────────────
+app.post("/api/newspim/draft", async (req, res) => {
+  const { title, category } = req.body || {};
+  if (!title) return res.status(400).json({ error: "title 필요" });
+  if (!process.env.ANTHROPIC_API_KEY)
+    return res.status(500).json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." });
+
+  try {
+    const prompts = await getArticlePrompts();
+    const catPrompt = prompts[category] || prompts["경제"] || Object.values(prompts)[0];
+
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
+    const client = new Anthropic();
+    const msg = await client.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 2000,
+      messages: [{
+        role: "user",
+        content: `${catPrompt}\n\n발제 제목: ${title}\n\n위 발제로 기사 초안을 작성해주세요.`,
+      }],
+    });
+    res.json({ draft: msg.content[0]?.text || "" });
+  } catch (err) {
+    console.error("[newspim/draft] 오류:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

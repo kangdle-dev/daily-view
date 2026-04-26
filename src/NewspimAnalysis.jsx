@@ -156,6 +156,110 @@ function computeAnalysis(insight) {
 }
 
 // ── AI 기사 제안 탭 ──────────────────────────────────────────
+// ── 기사 초안 모달 ───────────────────────────────────────────
+function DraftModal({ title, category, onClose }) {
+  const [draft, setDraft]     = useState("");
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied]   = useState(false);
+  const [error, setError]     = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/newspim/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, category }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        setDraft(data.draft);
+      } catch (e) { setError(e.message); }
+      setLoading(false);
+    })();
+  }, []);
+
+  const copy = () => {
+    navigator.clipboard.writeText(draft);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,.55)",
+      zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 16,
+    }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{
+        background: "#fff", borderRadius: 12, width: "100%", maxWidth: 640,
+        maxHeight: "85vh", display: "flex", flexDirection: "column",
+        boxShadow: "0 20px 60px rgba(0,0,0,.3)",
+      }}>
+        {/* 헤더 */}
+        <div style={{
+          padding: "14px 18px", borderBottom: `1px solid ${C.border}`,
+          display: "flex", alignItems: "flex-start", gap: 10,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 10, color: C.accent, fontWeight: 700, marginBottom: 4 }}>
+              ✍️ AI 기사 초안 — {category}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.txt1, lineHeight: 1.5 }}>
+              {title}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", fontSize: 20,
+            color: C.txt3, cursor: "pointer", flexShrink: 0, lineHeight: 1,
+          }}>✕</button>
+        </div>
+
+        {/* 본문 */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px" }}>
+          {loading && (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <div style={{
+                width: 32, height: 32, border: `3px solid ${C.border}`,
+                borderTop: `3px solid ${C.accent}`, borderRadius: "50%",
+                margin: "0 auto 12px", animation: "spin 1s linear infinite",
+              }} />
+              <div style={{ fontSize: 13, color: C.txt2 }}>초안 생성 중...</div>
+            </div>
+          )}
+          {error && <div style={{ fontSize: 13, color: "#DC2626", padding: "20px 0" }}>❌ {error}</div>}
+          {draft && (
+            <div style={{
+              fontSize: 13, color: C.txt1, lineHeight: 1.9,
+              whiteSpace: "pre-wrap", wordBreak: "break-word",
+            }}>{draft}</div>
+          )}
+        </div>
+
+        {/* 푸터 */}
+        {draft && (
+          <div style={{
+            padding: "12px 18px", borderTop: `1px solid ${C.border}`,
+            display: "flex", gap: 8,
+          }}>
+            <button onClick={copy} style={{
+              flex: 1, padding: "10px", background: copied ? "#22C55E" : C.accent,
+              color: "#fff", border: "none", borderRadius: 8,
+              fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "background .3s",
+            }}>
+              {copied ? "✅ 복사됨" : "📋 전체 복사"}
+            </button>
+            <button onClick={onClose} style={{
+              padding: "10px 20px", background: "#F1F5F9", color: C.txt2,
+              border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer",
+            }}>닫기</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── 방법론 섹션 래퍼 ────────────────────────────────────────
 function MSection({ step, title, children }) {
   return (
@@ -376,10 +480,11 @@ function MethodologyTab() {
 }
 
 function SuggestionsTab({ date }) {
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [data, setData]           = useState(null);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState("");
   const [generated, setGenerated] = useState(false);
+  const [draftTarget, setDraftTarget] = useState(null); // { title, category }
 
   const generate = async () => {
     setLoading(true); setError(""); setData(null);
@@ -509,15 +614,26 @@ function SuggestionsTab({ date }) {
           <div style={{ padding: "10px 14px" }}>
             {cat.articles.map((title, i) => (
               <div key={i} style={{
-                display: "flex", gap: 10, alignItems: "flex-start",
+                display: "flex", gap: 10, alignItems: "center",
                 padding: "7px 0",
                 borderBottom: i < cat.articles.length - 1 ? `1px solid ${C.border}` : "none",
               }}>
                 <span style={{
                   flexShrink: 0, fontSize: 11, fontWeight: 800,
-                  color: C.accent, minWidth: 18, textAlign: "center", paddingTop: 2,
+                  color: C.accent, minWidth: 18, textAlign: "center",
                 }}>{i + 1}</span>
-                <span style={{ fontSize: 13, color: C.txt1, lineHeight: 1.6, fontWeight: 500 }}>{title}</span>
+                <span style={{ flex: 1, fontSize: 13, color: C.txt1, lineHeight: 1.6, fontWeight: 500 }}>{title}</span>
+                <button
+                  onClick={() => setDraftTarget({ title, category: cat.category })}
+                  style={{
+                    flexShrink: 0, padding: "3px 10px",
+                    background: "#F1F5F9", border: `1px solid ${C.border}`,
+                    borderRadius: 5, fontSize: 11, fontWeight: 700,
+                    color: C.txt2, cursor: "pointer", whiteSpace: "nowrap",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = C.accent; e.currentTarget.style.color = "#fff"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "#F1F5F9"; e.currentTarget.style.color = C.txt2; }}
+                >초안 작성</button>
               </div>
             ))}
           </div>
@@ -527,6 +643,14 @@ function SuggestionsTab({ date }) {
       <div style={{ textAlign: "center", fontSize: 10, color: C.txt3, paddingTop: 4 }}>
         AI 생성 기사 제목 &nbsp;·&nbsp; {new Date(data.generatedAt).toLocaleTimeString("ko-KR")} 생성
       </div>
+
+      {draftTarget && (
+        <DraftModal
+          title={draftTarget.title}
+          category={draftTarget.category}
+          onClose={() => setDraftTarget(null)}
+        />
+      )}
     </div>
   );
 }

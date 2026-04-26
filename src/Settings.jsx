@@ -19,6 +19,11 @@ export default function Settings() {
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("categories");
 
+  // 기사 작성 프롬프트
+  const [prompts, setPrompts]         = useState(null);
+  const [promptCat, setPromptCat]     = useState("");
+  const [savingPrompt, setSavingPrompt] = useState(false);
+
   // 카테고리 추가 폼
   const [newCategory, setNewCategory] = useState("");
 
@@ -31,7 +36,34 @@ export default function Settings() {
   useEffect(() => {
     loadSettings();
     loadDataStats();
+    loadPrompts();
   }, []);
+
+  async function loadPrompts() {
+    try {
+      const res = await fetch("/api/settings/article-prompts");
+      if (res.ok) {
+        const data = await res.json();
+        setPrompts(data);
+        setPromptCat(Object.keys(data)[0] || "");
+      }
+    } catch (err) { console.error("프롬프트 로드 실패:", err); }
+  }
+
+  async function savePrompt() {
+    setSavingPrompt(true);
+    try {
+      const res = await fetch("/api/settings/article-prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prompts),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setMessage("프롬프트가 저장되었습니다.");
+      setTimeout(() => setMessage(""), 2000);
+    } catch (err) { setMessage("저장 실패: " + err.message); }
+    setSavingPrompt(false);
+  }
 
   async function loadDataStats() {
     try {
@@ -247,6 +279,18 @@ function formatBytes(bytes) {
           >
             🗑️ 데이터 관리
           </button>
+          <button
+            onClick={() => setActiveTab("prompts")}
+            style={{
+              background: "none", border: "none", padding: "12px 0", paddingBottom: 10,
+              borderBottom: activeTab === "prompts" ? `3px solid ${C.accent}` : "none",
+              color: activeTab === "prompts" ? C.accent : C.txt2,
+              fontWeight: activeTab === "prompts" ? 700 : 500,
+              fontSize: 14, cursor: "pointer", transition: "all .2s",
+            }}
+          >
+            ✍️ 기사 프롬프트
+          </button>
         </div>
 
         {/* 탭 1: 카테고리 */}
@@ -294,7 +338,7 @@ function formatBytes(bytes) {
                   type="text"
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  onKeyPress={e => e.key === "Enter" && handleAddCategory()}
+                  onKeyDown={e => e.key === "Enter" && handleAddCategory()}
                   placeholder="카테고리명 입력"
                   style={{
                     flex: 1, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px",
@@ -414,6 +458,64 @@ function formatBytes(bytes) {
               }}
             >
               {saving ? "저장 중..." : "저장"}
+            </button>
+          </div>
+        )}
+
+        {/* 탭 4: 기사 프롬프트 */}
+        {activeTab === "prompts" && prompts && (
+          <div>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: C.txt2, lineHeight: 1.6 }}>
+              AI 기사 초안 생성 시 카테고리별로 사용할 프롬프트를 설정합니다.
+            </p>
+
+            {/* 카테고리 탭 */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+              {Object.keys(prompts).map(cat => (
+                <button key={cat} onClick={() => setPromptCat(cat)} style={{
+                  padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                  border: `1px solid ${promptCat === cat ? C.accent : C.border}`,
+                  background: promptCat === cat ? C.accent : C.surface,
+                  color: promptCat === cat ? "#fff" : C.txt2,
+                  cursor: "pointer",
+                }}>{cat}</button>
+              ))}
+            </div>
+
+            {/* 선택된 카테고리 프롬프트 편집 */}
+            {promptCat && (
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 700, color: C.txt1, display: "block", marginBottom: 6 }}>
+                  [{promptCat}] 기사 작성 프롬프트
+                </label>
+                <textarea
+                  value={prompts[promptCat] || ""}
+                  onChange={e => setPrompts(prev => ({ ...prev, [promptCat]: e.target.value }))}
+                  rows={14}
+                  style={{
+                    width: "100%", padding: "10px 12px", fontSize: 13,
+                    border: `1px solid ${C.border}`, borderRadius: 8,
+                    fontFamily: "inherit", lineHeight: 1.7, resize: "vertical",
+                    outline: "none", boxSizing: "border-box", color: C.txt1,
+                  }}
+                />
+                <div style={{ fontSize: 11, color: C.txt3, marginTop: 4 }}>
+                  {(prompts[promptCat] || "").length}자 · 발제 제목은 AI가 자동으로 추가합니다
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={savePrompt}
+              disabled={savingPrompt}
+              style={{
+                marginTop: 16, padding: "10px 28px",
+                background: savingPrompt ? C.border : C.accent,
+                color: "#fff", border: "none", borderRadius: 8,
+                fontWeight: 700, fontSize: 14, cursor: savingPrompt ? "not-allowed" : "pointer",
+              }}
+            >
+              {savingPrompt ? "저장 중..." : "저장"}
             </button>
           </div>
         )}

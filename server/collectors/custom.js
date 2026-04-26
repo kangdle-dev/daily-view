@@ -1,3 +1,8 @@
+/**
+ * @file collectors/custom.js
+ * 범용 RSS 수집기 — RSS 파싱 후 각 기사 URL에서 본문 스크래핑
+ * skipUrls Set에 수집한 URL을 추가해 배치 내 중복 방지
+ */
 import Parser from "rss-parser";
 import axios from "axios";
 import { load } from "cheerio";
@@ -23,6 +28,7 @@ function todayKST() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
 }
 
+/** 기사 URL에서 본문 텍스트 추출 — 여러 CSS 셀렉터 순서대로 시도 */
 async function fetchContent(url, sourceName) {
   try {
     const res = await axios.get(url, { timeout: 12000, headers: HEADERS });
@@ -47,6 +53,7 @@ async function fetchContent(url, sourceName) {
   }
 }
 
+/** 소스 키로 등록된 모든 RSS 피드 수집 — skipUrls에 없는 URL만 스크래핑 후 저장 */
 export async function collectCustomSource(sourceKey, skipUrls = new Set()) {
   const sources = await getCustomSources();
   const source = sources.find(s => s.key === sourceKey);

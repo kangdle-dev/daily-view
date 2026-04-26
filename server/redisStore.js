@@ -1,8 +1,14 @@
+/**
+ * @file redisStore.js
+ * Redis 클라이언트 래퍼 — REDIS_URL 미설정 시 no-op으로 동작 (로컬 개발 허용)
+ * TTL 0 = 영구 저장, 기본 TTL = 3600초
+ */
 import redis from "redis";
 
 let redisClient = null;
 let isConnected = false;
 
+/** Redis 연결 초기화 — REDIS_URL 없으면 false 반환 */
 export async function initRedis() {
   if (!process.env.REDIS_URL) {
     console.log("[redis] REDIS_URL not set, skipping Redis initialization");
@@ -35,6 +41,7 @@ export async function initRedis() {
   }
 }
 
+/** JSON 값 조회 — Redis 미연결 시 null */
 export async function get(key) {
   if (!isConnected || !redisClient) return null;
   try {
@@ -46,6 +53,7 @@ export async function get(key) {
   }
 }
 
+/** JSON 값 저장 — ttl=0 이면 영구 저장 */
 export async function set(key, value, ttl = 3600) {
   if (!isConnected || !redisClient) return false;
   try {
@@ -72,6 +80,7 @@ export function isRedisAvailable() {
   return isConnected && !!redisClient;
 }
 
+/** 키가 없을 때만 초기값 저장 — 서버 시작 시 기본 피드 로드용 */
 export async function seedData(key, defaultValue) {
   if (!isRedisAvailable()) return;
   try {

@@ -1,3 +1,10 @@
+/**
+ * @file telegramService.js
+ * Telegram Bot API를 통해 채널에 HTML 파싱 메시지 발송
+ * 필수 환경 변수: TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID
+ */
+
+/** HTML parse_mode로 메시지 발송 — 토큰 미설정 시 false 반환 */
 export async function sendTelegramMessage(message) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHANNEL_ID;

@@ -1,3 +1,7 @@
+/**
+ * @file collectLogger.js
+ * 수집 실행 로그 — data/logs/collect-{YYYY-MM-DD}.log 파일에 추가 기록
+ */
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -9,6 +13,7 @@ function todayKST() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
 }
 
+/** 수집 로그 라인 배열을 날짜별 로그 파일에 추가 */
 export async function saveCollectLog(lines) {
   if (!lines || lines.length === 0) return;
   await fs.mkdir(LOG_DIR, { recursive: true });
@@ -23,6 +28,7 @@ export async function saveCollectLog(lines) {
   console.log = console.log; // no-op, just to ensure we don't break anything
 }
 
+/** 날짜별 로그 파일 읽기 — 없으면 빈 배열 */
 export async function readCollectLog(date) {
   const file = path.join(LOG_DIR, `collect-${date}.log`);
   try {

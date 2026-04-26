@@ -1,4 +1,9 @@
-import { get as redisGet, set as redisSet, del as redisDel, isRedisAvailable } from "./redisStore.js";
+/**
+ * @file feedStore.js
+ * RSS 피드 소스 관리 — Redis "feeds:all" 키에 TTL 없이 영구 저장
+ * 스키마: { sources: [{ id, key, name, feeds: [{ url, mainCategory }] }] }
+ */
+import { get as redisGet, set as redisSet, isRedisAvailable } from "./redisStore.js";
 
 const REDIS_KEY = "feeds:all";
 
@@ -17,11 +22,13 @@ async function saveData(data) {
   await redisSet(REDIS_KEY, data, 0); // TTL 0 = 영구 저장
 }
 
+/** 전체 RSS 소스 목록 반환 */
 export async function getCustomSources() {
   const data = await getData();
   return data.sources || [];
 }
 
+/** 새 RSS 소스 추가 — key 중복 시 에러 */
 export async function addCustomSource({ name, key, feeds }) {
   const data = await getData();
   if (data.sources.some(s => s.key === key)) {
@@ -39,6 +46,7 @@ export async function addCustomSource({ name, key, feeds }) {
   return source;
 }
 
+/** id로 소스 수정 — 전달된 필드만 변경 */
 export async function updateCustomSource(id, { name, key, feeds }) {
   const data = await getData();
   const idx = data.sources.findIndex(s => s.id === id);
@@ -52,6 +60,7 @@ export async function updateCustomSource(id, { name, key, feeds }) {
   return data.sources[idx];
 }
 
+/** id로 소스 삭제 */
 export async function removeCustomSource(id) {
   const data = await getData();
   data.sources = data.sources.filter(s => s.id !== id);

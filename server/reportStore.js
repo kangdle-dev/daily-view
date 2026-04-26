@@ -1,3 +1,8 @@
+/**
+ * @file reportStore.js
+ * 리포트 캐시 — data/report-{YYYY-MM-DD}.json
+ * 수집 후 캐시 삭제 → 다음 요청 시 최신 기사로 재생성
+ */
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -9,6 +14,7 @@ function reportPath(date) {
   return path.join(dataDir, `report-${date}.json`);
 }
 
+/** 날짜별 리포트 캐시 조회 — 없으면 null */
 export async function getReport(date) {
   try {
     const filePath = reportPath(date);
@@ -21,6 +27,7 @@ export async function getReport(date) {
   }
 }
 
+/** 리포트를 날짜별 JSON 파일로 캐싱 */
 export async function saveReport(date, report) {
   try {
     if (!fs.existsSync(dataDir)) {
@@ -36,6 +43,7 @@ export async function saveReport(date, report) {
   }
 }
 
+/** 날짜별 리포트 캐시 삭제 — 15분 수집 후 호출해 최신 기사 반영 */
 export async function deleteReport(date) {
   try {
     const filePath = reportPath(date);
@@ -48,6 +56,7 @@ export async function deleteReport(date) {
   }
 }
 
+/** 전체 리포트 캐시 일괄 삭제 — 수동 수집 완료 시 호출 */
 export async function deleteAllReports() {
   try {
     const files = fs.readdirSync(dataDir).filter(f => f.startsWith("report-") && f.endsWith(".json"));

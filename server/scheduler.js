@@ -1,3 +1,11 @@
+/**
+ * @file scheduler.js
+ * KST 기준 자동화 스케줄 관리
+ *   - 06:00~23:50  15분 간격 기사 수집 (수집 후 리포트 캐시 삭제)
+ *   - 06:00        일일 리포트 생성 캐싱
+ *   - 07:00        종합 리포트 텔레그램 발송
+ *   - 설정 시간    AI 브리핑 생성
+ */
 import cron from "node-cron";
 import { generateBriefing } from "./generate.js";
 import { saveBriefing, getBriefing } from "./store.js";
@@ -20,6 +28,7 @@ function todayStr() {
 }
 
 // ── 15분 간격 수집 (06:00~23:50) ──────────────────────────
+/** 15분 간격 수집 실행 — 완료 후 당일 리포트 캐시 삭제 */
 async function runPeriodicCollection() {
   const date = todayStr();
   const startTime = new Date();
@@ -45,6 +54,7 @@ async function runPeriodicCollection() {
 }
 
 // ── 06:00 일일 리포트 생성 ──────────────────────────────────
+/** 06:00 일일 리포트 생성 — 기존 캐시 삭제 후 재생성 */
 async function runDailyReportGeneration() {
   const date = todayStr();
   console.log(`[scheduler] 일일 리포트 생성 시작 — ${date}`);
@@ -69,6 +79,7 @@ async function runDailyReportGeneration() {
 }
 
 // ── 07:00 일일 텔레그램 발송 ────────────────────────────────
+/** 07:00 종합 리포트 텔레그램 자동 발송 — 06:00 생성된 캐시 사용 */
 async function runDailyTelegramSend() {
   const date = todayStr();
   console.log(`[scheduler] 텔레그램 발송 시작 — ${date}`);
@@ -126,6 +137,7 @@ async function runDailyTelegramSend() {
 }
 
 // ── AI 브리핑 생성 (기존 로직) ──────────────────────────────
+/** 설정된 시간에 AI 브리핑 생성 — 이미 캐시된 날짜는 스킵 */
 async function runDailyBriefing() {
   const date = todayStr();
   console.log(`[scheduler] 브리핑 생성 시작 — ${date}`);
@@ -151,6 +163,7 @@ let reportGenerationTask = null;
 let telegramSendTask = null;
 let briefingTask = null;
 
+/** 모든 cron 작업 등록 — 설정 변경 시 restartScheduler()로 재등록 */
 export async function startScheduler() {
   try {
     const settings = await getSettings();

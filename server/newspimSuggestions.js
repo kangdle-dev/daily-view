@@ -1,3 +1,8 @@
+/**
+ * @file newspimSuggestions.js
+ * 뉴스핌 AI 발제 생성 — 타사 대비 보도 공백 분석 후 카테고리별 전문기자 역할로 제목 10개씩 생성
+ * Few-shot: 당일 실제 뉴스핌 기사 5개를 예시로 제공해 문체·각도 학습
+ */
 import Anthropic from "@anthropic-ai/sdk";
 import { getArticles } from "./articleStore.js";
 
@@ -120,7 +125,7 @@ ${refs || "  - (참고 기사 없음)"}
 위 타사 기사를 바탕으로 뉴스핌 스타일의 발제 10개를 제안해주세요.
 - 위 예시처럼 구체적인 수치·기업명·인물명을 포함할 것
 - 단순 사실 전달 말고 "왜", "어떻게", "다음은" 같은 심층 각도
-- [단독] [분석] [인터뷰] [현장] 태그 균형 있게 활용
+- [단독] [분석] [인터뷰] [현장] 등 태그는 절대 사용하지 말 것, 순수 제목만
 - 독자(기관투자자, 금융권 종사자)가 바로 활용할 수 있는 각도
 
 JSON 형식으로만 응답 (다른 텍스트 없이):
@@ -146,10 +151,13 @@ JSON 형식으로만 응답 (다른 텍스트 없이):
           parsed = JSON.parse(partial);
         }
 
+        const articles = (parsed.articles || [])
+          .map(t => t.replace(/^\[.+?\]\s*/g, "").trim());
+
         return {
           category: cat,
           role,
-          articles: parsed.articles || [],
+          articles,
           context: { total, newspimCount: npCnt, share },
         };
       } catch (err) {
