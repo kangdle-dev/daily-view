@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, FileBarChart2, Lightbulb, Printer,
   TrendingUp, Rss, BookOpen, Users, LogOut, ChevronDown, Settings,
+  SlidersHorizontal, Activity,
 } from "lucide-react";
 import { getNav } from "./navConfig.js";
 import { getRole, getName, logout } from "./useAuth.js";
 
 const ICON_MAP = {
   LayoutDashboard, FileBarChart2, Lightbulb, Printer,
-  TrendingUp, Rss, BookOpen, Users, Settings,
+  TrendingUp, Rss, BookOpen, Users, Settings, SlidersHorizontal, Activity,
 };
 
 function NavIcon({ name, size = 15 }) {
@@ -24,6 +25,114 @@ function useIsMobile() {
     return () => window.removeEventListener("resize", fn);
   }, []);
   return mobile;
+}
+
+// 단일 링크 메뉴 아이템
+function NavLink({ item, current, isMobile }) {
+  const active = item.href === current;
+  return (
+    <a href={item.href} style={{
+      display: "flex",
+      alignItems: "center",
+      gap: isMobile ? 0 : 6,
+      padding: isMobile ? "7px 10px" : "6px 11px",
+      borderRadius: 6,
+      textDecoration: "none",
+      color:      active ? "#fff" : "rgba(148,163,184,0.9)",
+      background: active ? "rgba(99,102,241,0.18)" : "transparent",
+      fontWeight: active ? 600 : 400,
+      fontSize: 13,
+      whiteSpace: "nowrap",
+      flexShrink: 0,
+      transition: "background 0.15s, color 0.15s",
+      borderBottom: active ? "2px solid #6366F1" : "2px solid transparent",
+    }}>
+      <span style={{ color: active ? "#818CF8" : "rgba(100,116,139,0.9)", display: "flex", alignItems: "center" }}>
+        <NavIcon name={item.icon} size={15} />
+      </span>
+      {!isMobile && item.label}
+    </a>
+  );
+}
+
+// 드롭다운 메뉴 아이템 (children 있는 경우)
+function NavDropdown({ item, current, isMobile }) {
+  const [open, setOpen] = useState(false);
+  const active = item.children.some(c => c.href === current);
+
+  return (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: isMobile ? 0 : 6,
+          padding: isMobile ? "7px 10px" : "6px 11px",
+          borderRadius: 6,
+          background: active ? "rgba(99,102,241,0.18)" : "transparent",
+          border: "none",
+          color:      active ? "#fff" : "rgba(148,163,184,0.9)",
+          fontWeight: active ? 600 : 400,
+          fontSize: 13,
+          whiteSpace: "nowrap",
+          cursor: "pointer",
+          transition: "background 0.15s, color 0.15s",
+          borderBottom: active ? "2px solid #6366F1" : "2px solid transparent",
+        }}
+      >
+        <span style={{ color: active ? "#818CF8" : "rgba(100,116,139,0.9)", display: "flex", alignItems: "center" }}>
+          <NavIcon name={item.icon} size={15} />
+        </span>
+        {!isMobile && item.label}
+        {!isMobile && (
+          <ChevronDown size={11} color={active ? "#818CF8" : "#64748B"}
+            style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }} />
+        )}
+      </button>
+
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setOpen(false)} />
+          <div style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0,
+            background: "#1E293B",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 8,
+            padding: "4px",
+            minWidth: 140,
+            zIndex: 300,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          }}>
+            {item.children.map(child => {
+              const childActive = child.href === current;
+              return (
+                <a key={child.href} href={child.href} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "7px 10px",
+                  borderRadius: 5,
+                  textDecoration: "none",
+                  color:      childActive ? "#fff" : "#94A3B8",
+                  background: childActive ? "rgba(99,102,241,0.2)" : "transparent",
+                  fontWeight: childActive ? 600 : 400,
+                  fontSize: 13,
+                  whiteSpace: "nowrap",
+                  transition: "background 0.15s, color 0.15s",
+                }}>
+                  <span style={{ color: childActive ? "#818CF8" : "#64748B", display: "flex", alignItems: "center" }}>
+                    <NavIcon name={child.icon} size={13} />
+                  </span>
+                  {child.label}
+                </a>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function Nav({ current }) {
@@ -73,33 +182,12 @@ export default function Nav({ current }) {
       {!isMobile && <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.1)", marginRight: 16 }} />}
 
       {/* 메뉴 아이템 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, overflowX: "auto", minWidth: 0 }}>
-        {navItems.map(n => {
-          const active = n.href === current;
-          return (
-            <a key={n.href} href={n.href} style={{
-              display: "flex",
-              alignItems: "center",
-              gap: isMobile ? 0 : 6,
-              padding: isMobile ? "7px 10px" : "6px 11px",
-              borderRadius: 6,
-              textDecoration: "none",
-              color:      active ? "#fff"          : "rgba(148,163,184,0.9)",
-              background: active ? "rgba(99,102,241,0.18)" : "transparent",
-              fontWeight: active ? 600 : 400,
-              fontSize: 13,
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-              transition: "background 0.15s, color 0.15s",
-              borderBottom: active ? "2px solid #6366F1" : "2px solid transparent",
-            }}>
-              <span style={{ color: active ? "#818CF8" : "rgba(100,116,139,0.9)", display: "flex", alignItems: "center" }}>
-                <NavIcon name={n.icon} size={15} />
-              </span>
-              {!isMobile && n.label}
-            </a>
-          );
-        })}
+      <div style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, minWidth: 0 }}>
+        {navItems.map(n =>
+          n.children
+            ? <NavDropdown key={n.label} item={n} current={current} isMobile={isMobile} />
+            : <NavLink    key={n.href}  item={n} current={current} isMobile={isMobile} />
+        )}
       </div>
 
       {/* 유저 메뉴 */}

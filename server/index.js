@@ -17,6 +17,7 @@ import { getCustomSources, addCustomSource, updateCustomSource, removeCustomSour
 import { initAccounts, authenticate, getAccounts, addAccount, updateAccount, removeAccount } from "./accountStore.js";
 import { createSession, destroySession, authGuard, requireRole, checkRateLimit, resetRateLimit } from "./authMiddleware.js";
 import { getSettings, saveSettings, getArticlePrompts, saveArticlePrompts, seedSettings } from "./settingsStore.js";
+import { getRSSPreview, invalidateRSSCache } from "./rssCache.js";
 import { restartScheduler } from "./scheduler.js";
 import { initRedis, seedData } from "./redisStore.js";
 import { sendTelegramMessage } from "./telegramService.js";
@@ -251,6 +252,51 @@ app.get("/api/articles", async (req, res) => {
 
 app.get("/api/articles/dates", async (_req, res) => {
   res.json({ dates: await listArticleDates() });
+});
+
+// ─── 실시간 기사 현황 (소스별 그룹핑) ──────────────────────
+app.get("/api/articles/realtime", async (req, res) => {
+  const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const date = req.query.date || kstNow.toISOString().slice(0, 10);
+  const articles = await getArticles(date);
+
+  const sourceMap = {};
+  for (const a of articles) {
+    const key = a.source || "unknown";
+    if (!sourceMap[key]) sourceMap[key] = { key, name: a.sourceName || key, articles: [] };
+    sourceMap[key].articles.push(a);
+  }
+
+  const sources = Object.values(sourceMap)
+    .map(s => ({
+      ...s,
+      articles: s.articles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt)),
+    }))
+    .sort((a, b) => new Date(b.articles[0]?.publishedAt || 0) - new Date(a.articles[0]?.publishedAt || 0));
+
+  res.json({ date, sources });
+});
+
+// ─── 실시간 경량 RSS (제목+링크, 5분 캐시) ─────────────────
+app.get("/api/articles/realtime-rss", async (_req, res) => {
+  try {
+    const result = await getRSSPreview();
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    res.json({ date: kstNow.toISOString().slice(0, 10), ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/articles/realtime-rss/refresh", async (_req, res) => {
+  invalidateRSSCache();
+  try {
+    const result = await getRSSPreview();
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    res.json({ date: kstNow.toISOString().slice(0, 10), ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── 리포트 ────────────────────────────────────────────────

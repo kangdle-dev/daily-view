@@ -14,9 +14,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FILE = path.join(__dirname, "..", "data", "accounts.json");
 
 export const ROLE_ROUTES = {
-  basic:   ["/dashboard", "/report", "/insight", "/simple", "/methodology"],
-  analyst: ["/dashboard", "/report", "/insight", "/simple", "/methodology", "/newspim"],
-  admin:   ["/dashboard", "/report", "/insight", "/simple", "/methodology", "/newspim", "/feeds", "/settings", "/accounts"],
+  basic:   ["/dashboard", "/report", "/insight", "/simple", "/methodology", "/realtime"],
+  analyst: ["/dashboard", "/report", "/insight", "/simple", "/methodology", "/realtime", "/newspim"],
+  admin:   ["/dashboard", "/report", "/insight", "/simple", "/methodology", "/realtime", "/newspim", "/feeds", "/settings", "/accounts"],
 };
 
 const ROLE_LABELS = { basic: "기본", analyst: "분석가", admin: "관리자" };

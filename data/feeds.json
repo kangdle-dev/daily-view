@@ -329,6 +329,18 @@
         }
       ],
       "createdAt": "2026-04-23T06:55:11.956Z"
+    },
+    {
+      "id": "1777167920052",
+      "key": "hank",
+      "name": "한국경제",
+      "feeds": [
+        {
+          "url": "https://www.hankyung.com/feed/finance",
+          "mainCategory": "증권.금융"
+        }
+      ],
+      "createdAt": "2026-04-26T01:45:20.052Z"
     }
   ]
 }

@@ -10,6 +10,7 @@ import FeedsManager from "./FeedsManager.jsx";
 import Settings from "./Settings.jsx";
 import Methodology from "./Methodology.jsx";
 import AccountManager from "./AccountManager.jsx";
+import Realtime from "./Realtime.jsx";
 import Login from "./Login.jsx";
 import { isLoggedIn, getToken, hasRoute } from "./useAuth.js";
 
@@ -48,6 +49,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="/insight"   element={<Insight />} />
           <Route path="/simple"    element={<SimpleDashboard />} />
           <Route path="/methodology" element={<Methodology />} />
+          <Route path="/realtime"    element={<Realtime />} />
           <Route path="/newspim" element={
             <PermGuard route="/newspim"><NewspimAnalysis /></PermGuard>
           } />
