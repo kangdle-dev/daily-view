@@ -19,9 +19,10 @@ import { createSession, destroySession, authGuard, requireRole, checkRateLimit, 
 import { getSettings, saveSettings, getArticlePrompts, saveArticlePrompts, seedSettings } from "./settingsStore.js";
 import { getRSSPreview, invalidateRSSCache } from "./rssCache.js";
 import { restartScheduler } from "./scheduler.js";
-import { initRedis, seedData } from "./redisStore.js";
+import { initRedis, seedData, get as redisGet, set as redisSet, isRedisAvailable } from "./redisStore.js";
 import { sendTelegramMessage } from "./telegramService.js";
 import { getReport, saveReport } from "./reportStore.js";
+import { getIssueTracking } from "./issueTracker.js";
 import { generatePersonReport } from "./personReport.js";
 import { generatePersonInsight } from "./personInsight.js";
 import Parser from "rss-parser";
@@ -299,6 +300,19 @@ app.post("/api/articles/realtime-rss/refresh", async (_req, res) => {
   }
 });
 
+// ─── 이슈 트래킹 ──────────────────────────────────────────
+app.get("/api/issues/tracking", async (req, res) => {
+  const { date, days } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+    return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+  try {
+    const result = await getIssueTracking(date, parseInt(days) || 7);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── 리포트 ────────────────────────────────────────────────
 app.get("/api/report", async (req, res) => {
   const { date } = req.query;
@@ -479,13 +493,33 @@ app.get("/api/insight", async (req, res) => {
 });
 
 app.get("/api/insight/ai", async (req, res) => {
-  const { date } = req.query;
+  const { date, refresh } = req.query;
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
     return res.status(400).json({ error: "date 파라미터 필요 (YYYY-MM-DD)" });
+
+  const cacheKey = `ai-insight:${date}`;
+  const kstToday = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const isToday  = date === kstToday;
+
   try {
+    // 캐시 확인 (refresh=1 이면 강제 재생성)
+    if (refresh !== "1" && isRedisAvailable()) {
+      const cached = await redisGet(cacheKey);
+      if (cached?.text) return res.json({ ...cached, cached: true });
+    }
+
     const articles = await getArticles(date);
     if (!articles?.length) return res.status(404).json({ error: "수집 기사가 없습니다." });
-    res.json({ text: await generateAIInsight(articles, date) });
+
+    const text = await generateAIInsight(articles, date);
+    const result = { text, generatedAt: new Date().toISOString() };
+
+    // 캐시 저장 — 오늘: 1시간, 과거: 영구
+    if (isRedisAvailable()) {
+      await redisSet(cacheKey, result, isToday ? 3600 : 0);
+    }
+
+    res.json({ ...result, cached: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -629,43 +663,47 @@ function escapeHtml(text) {
     .replace(/>/g, "&gt;");
 }
 
+// 메시지 포맷 공통 함수
+function formatReportMessage(date, report) {
+  const targetCats = ["정치", "경제", "사회", "국제", "증권·금융"].filter(c => report.categories[c]);
+  const lines = [
+    `📊 <b>뉴스 텔레그램 리포트</b>`,
+    `📅 ${date}`,
+    ``,
+    `<b>📰 종합 주요기사</b>`,
+  ];
+  report.top10.slice(0, 5).forEach((a, i) => {
+    lines.push(`${i + 1}. <a href="${a.url}">${escapeHtml(a.title)}</a>`);
+  });
+  lines.push(``, `<b>📂 카테고리별 중요기사</b>`);
+  targetCats.forEach(cat => {
+    const articles = report.categories[cat] || [];
+    lines.push(``, `<b>${cat}</b>`);
+    articles.slice(0, 3).forEach((a, i) => {
+      lines.push(`${i + 1}. <a href="${a.url}">${escapeHtml(a.title)}</a>`);
+    });
+  });
+  return lines.join("\n");
+}
+
+// ─── Telegram 메시지 미리보기 (발송 없음) ─────────────────
+app.post("/api/telegram/preview", async (req, res) => {
+  try {
+    const { date, report } = req.body;
+    if (!date || !report) return res.status(400).json({ error: "date, report 필요" });
+    res.json({ message: formatReportMessage(date, report) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Telegram 리포트 발송 ────────────────────────────────
 app.post("/api/telegram/send-report", async (req, res) => {
   try {
     const { date, report } = req.body;
-    const targetCats = ["정치", "경제", "사회", "국제", "증권·금융"].filter(c => report.categories[c]);
-
-    // 메시지 포맷팅
-    let msgLines = [
-      `📊 <b>뉴스 텔레그램 리포트</b>`,
-      `📅 ${date}`,
-      ``,
-      `<b>📰 종합 주요기사</b>`,
-    ];
-
-    report.top10.slice(0, 5).forEach((a, i) => {
-      msgLines.push(`${i + 1}. <a href="${a.url}">${escapeHtml(a.title)}</a>`);
-    });
-
-    msgLines.push(``, `<b>📂 카테고리별 중요기사</b>`);
-
-    targetCats.forEach(cat => {
-      const articles = report.categories[cat] || [];
-      msgLines.push(``, `<b>${cat}</b>`);
-      articles.slice(0, 3).forEach((a, i) => {
-        msgLines.push(`${i + 1}. <a href="${a.url}">${escapeHtml(a.title)}</a>`);
-      });
-    });
-
-    const message = msgLines.join("\n");
-
-    // 검증된 sendTelegramMessage 함수 사용
-    const result = await sendTelegramMessage(message);
-
-    if (!result) {
-      throw new Error("Telegram 발송 실패");
-    }
-
+    const message = formatReportMessage(date, report);
+    const result  = await sendTelegramMessage(message);
+    if (!result) throw new Error("Telegram 발송 실패");
     res.json({ ok: true, message: "Telegram으로 발송되었습니다" });
   } catch (err) {
     console.error("[telegram/send-report] 오류:", err.message);

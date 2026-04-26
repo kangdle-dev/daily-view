@@ -205,51 +205,62 @@ function HourlyChart({ data }) {
   );
 }
 
-// ── AI 인사이트 ───────────────────────────────────────────
+// ── AI 인사이트 (자동 로드) ──────────────────────────────
 function AIInsight({ date }) {
-  const [state, setState] = useState("idle"); // idle | loading | done | error
-  const [text, setText] = useState("");
+  const [state, setState] = useState("loading");
+  const [text, setText]   = useState("");
+  const [cached, setCached] = useState(false);
+  const [generatedAt, setGeneratedAt] = useState("");
 
-  const generate = async () => {
-    setState("loading");
+  const load = async (forceRefresh = false) => {
+    setState("loading"); setText("");
     try {
-      const res = await fetch(`/api/insight/ai?date=${date}`);
+      const url = `/api/insight/ai?date=${date}${forceRefresh ? "&refresh=1" : ""}`;
+      const res  = await fetch(url);
       const data = await res.json();
-      if (data.text) { setText(data.text); setState("done"); }
-      else { setState("error"); }
+      if (data.text) {
+        setText(data.text);
+        setCached(!!data.cached);
+        setGeneratedAt(data.generatedAt || "");
+        setState("done");
+      } else {
+        setState("error");
+      }
     } catch { setState("error"); }
   };
 
-  if (state === "idle") return (
-    <div style={{ textAlign: "center", padding: "20px 0" }}>
-      <div style={{ fontSize: 32, marginBottom: 10 }}>🤖</div>
-      <p style={{ fontSize: 13, color: C.txt2, marginBottom: 16 }}>Claude AI가 오늘의 뉴스 흐름을 종합 분석합니다</p>
-      <button onClick={generate} style={{ background: C.accent, color: "#fff", border: "none", padding: "11px 28px", borderRadius: 9, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-        AI 분석 생성
-      </button>
-    </div>
-  );
+  // 날짜 바뀔 때마다 자동 호출
+  useEffect(() => { load(); }, [date]);
 
   if (state === "loading") return (
     <div style={{ textAlign: "center", padding: "28px 0" }}>
       <div style={{ width: 32, height: 32, border: `3px solid ${C.border}`, borderTop: `3px solid ${C.accent}`, borderRadius: "50%", margin: "0 auto 12px", animation: "spin 1s linear infinite" }} />
-      <div style={{ fontSize: 13, color: C.txt2 }}>분석 중...</div>
+      <div style={{ fontSize: 13, color: C.txt2 }}>AI 분석 중...</div>
     </div>
   );
 
   if (state === "error") return (
     <div style={{ textAlign: "center", padding: "20px 0", color: "#EF4444" }}>
-      <div style={{ fontSize: 13 }}>분석 생성에 실패했습니다</div>
-      <button onClick={generate} style={{ marginTop: 10, background: "none", border: `1px solid ${C.border}`, padding: "8px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>다시 시도</button>
+      <div style={{ fontSize: 13, marginBottom: 10 }}>분석 생성에 실패했습니다</div>
+      <button onClick={() => load()} style={{ background: "none", border: `1px solid ${C.border}`, padding: "8px 18px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
+        다시 시도
+      </button>
     </div>
   );
 
   return (
     <div>
       <div style={{ fontSize: 14, color: C.txt1, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{text}</div>
-      <button onClick={() => { setState("idle"); setText(""); }} style={{ marginTop: 14, background: "none", border: `1px solid ${C.border}`, padding: "6px 14px", borderRadius: 7, cursor: "pointer", fontSize: 12, color: C.txt3, fontFamily: "inherit" }}>
-        다시 생성
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+        {cached && generatedAt && (
+          <span style={{ fontSize: 11, color: C.txt3 }}>
+            캐시됨 · {new Date(generatedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" })}
+          </span>
+        )}
+        <button onClick={() => load(true)} style={{ background: "none", border: `1px solid ${C.border}`, padding: "5px 12px", borderRadius: 7, cursor: "pointer", fontSize: 12, color: C.txt3, fontFamily: "inherit" }}>
+          재생성
+        </button>
+      </div>
     </div>
   );
 }

@@ -54,14 +54,34 @@ function Block({ title, accent = C.navy, badge, children }) {
 }
 
 export default function SimpleDashboard() {
-  const [date, setDate]       = useState(todayStr());
-  const [report, setReport]   = useState(null);
-  const [insight, setInsight] = useState(null);
+  const [date, setDate]         = useState(todayStr());
+  const [report, setReport]     = useState(null);
+  const [insight, setInsight]   = useState(null);
   const [articles, setArticles] = useState([]);
-  const [aiText, setAiText]   = useState("");
-  const [loading, setLoading] = useState(false);
+  const [aiText, setAiText]     = useState("");
+  const [loading, setLoading]   = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [availDates, setAvailDates] = useState([]);
   const isMobile = useIsMobile();
+
+  // 수집된 날짜 목록 로드
+  useEffect(() => {
+    fetch("/api/articles/dates")
+      .then(r => r.json())
+      .then(d => setAvailDates((d.dates || []).sort().reverse()))
+      .catch(() => {});
+  }, []);
+
+  function prevDay() {
+    const idx = availDates.indexOf(date);
+    if (idx < availDates.length - 1) setDate(availDates[idx + 1]);
+  }
+  function nextDay() {
+    const idx = availDates.indexOf(date);
+    if (idx > 0) setDate(availDates[idx - 1]);
+  }
+  const hasPrev = availDates.indexOf(date) < availDates.length - 1;
+  const hasNext = availDates.indexOf(date) > 0;
 
   const fetchData = async (d) => {
     setLoading(true); setAiText(""); setReport(null); setInsight(null); setArticles([]);
@@ -79,11 +99,11 @@ export default function SimpleDashboard() {
     setLoading(false);
   };
 
-  const fetchAI = async () => {
-    if (aiLoading || aiText) return;
-    setAiLoading(true);
+  const fetchAI = async (forceRefresh = false) => {
+    setAiLoading(true); setAiText("");
     try {
-      const res = await fetch(`/api/insight/ai?date=${date}`);
+      const url = `/api/insight/ai?date=${date}${forceRefresh ? "&refresh=1" : ""}`;
+      const res  = await fetch(url);
       const data = await res.json();
       if (data.text) setAiText(data.text);
     } catch {}
@@ -91,6 +111,9 @@ export default function SimpleDashboard() {
   };
 
   useEffect(() => { fetchData(date); }, [date]);
+
+  // 날짜 바뀔 때마다 AI 요약 자동 로드
+  useEffect(() => { fetchAI(); }, [date]);
 
   // 파생 데이터
   const breaking = articles
@@ -111,11 +134,42 @@ export default function SimpleDashboard() {
       {/* ── 내비 (인쇄 숨김) ── */}
       <div className="no-print"><Nav current="/simple" /></div>
       {/* ── 날짜 + 인쇄 툴바 (인쇄 숨김) ── */}
-      <div className="no-print" style={{ background: C.nav, display: "flex", alignItems: "center", padding: "8px 14px", gap: 8, justifyContent: "flex-end" }}>
-        <input type="date" value={date} max={todayStr()} onChange={e => setDate(e.target.value)}
-          style={{ border: "1px solid #334155", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", outline: "none", background: "#293548", color: "#F1F5F9", minHeight: 36 }} />
+      <div className="no-print" style={{ background: C.nav, display: "flex", alignItems: "center", padding: "8px 14px", gap: 8, flexWrap: "wrap" }}>
+        {/* 날짜 네비게이션 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
+          <button onClick={prevDay} disabled={!hasPrev}
+            style={{ background: hasPrev ? "#334155" : "transparent", border: "1px solid #334155", borderRadius: 6, padding: "5px 10px", color: hasPrev ? "#F1F5F9" : "#475569", fontSize: 12, fontWeight: 700, cursor: hasPrev ? "pointer" : "default" }}>
+            ← 이전
+          </button>
+
+          {/* 수집된 날짜 드롭다운 */}
+          {availDates.length > 0 ? (
+            <select value={date} onChange={e => setDate(e.target.value)}
+              style={{ border: "1px solid #334155", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: 700, fontFamily: "inherit", outline: "none", background: "#293548", color: "#F1F5F9", minHeight: 36, cursor: "pointer" }}>
+              {availDates.map(d => (
+                <option key={d} value={d}>{fmtDate(d)}{d === todayStr() ? " (오늘)" : ""}</option>
+              ))}
+            </select>
+          ) : (
+            <input type="date" value={date} max={todayStr()} onChange={e => setDate(e.target.value)}
+              style={{ border: "1px solid #334155", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", outline: "none", background: "#293548", color: "#F1F5F9", minHeight: 36 }} />
+          )}
+
+          <button onClick={nextDay} disabled={!hasNext}
+            style={{ background: hasNext ? "#334155" : "transparent", border: "1px solid #334155", borderRadius: 6, padding: "5px 10px", color: hasNext ? "#F1F5F9" : "#475569", fontSize: 12, fontWeight: 700, cursor: hasNext ? "pointer" : "default" }}>
+            다음 →
+          </button>
+
+          {date !== todayStr() && (
+            <button onClick={() => setDate(todayStr())}
+              style={{ background: "#2563EB", border: "none", borderRadius: 6, padding: "5px 10px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              오늘
+            </button>
+          )}
+        </div>
+
         <button onClick={() => window.print()}
-          style={{ background: "#FFD600", color: "#111", border: "none", padding: "7px 14px", borderRadius: 7, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+          style={{ background: "#FFD600", color: "#111", border: "none", padding: "7px 14px", borderRadius: 7, fontWeight: 800, fontSize: 12, cursor: "pointer", flexShrink: 0 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Printer size={13} strokeWidth={2} /> 인쇄</span>
         </button>
       </div>
@@ -223,19 +277,22 @@ export default function SimpleDashboard() {
 
             {/* ─ AI 요약 ─ */}
             <Block title="🤖 AI 오늘 요약" accent="#0F172A">
-              <div style={{ padding: "11px 16px", minHeight: 56, display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <div style={{ padding: "11px 16px", minHeight: 56 }}>
                 {aiLoading ? (
-                  <div style={{ fontSize: 13, color: C.txt3 }}>Claude AI 분석 중...</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 16, height: 16, border: `2px solid ${C.border}`, borderTop: `2px solid ${C.accent}`, borderRadius: "50%", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: C.txt3 }}>Claude AI 분석 중...</span>
+                  </div>
                 ) : aiText ? (
-                  <div style={{ fontSize: 13, lineHeight: 1.9, color: C.txt1, whiteSpace: "pre-wrap", flex: 1 }}>{aiText}</div>
-                ) : (
-                  <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-                    <div className="no-print" style={{ fontSize: 13, color: C.txt3, fontStyle: "italic" }}>AI 요약을 생성하면 인쇄본에도 포함됩니다</div>
-                    <button onClick={fetchAI} className="no-print"
-                      style={{ background: C.accent, color: "#fff", border: "none", padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-                      AI 요약 생성
+                  <div>
+                    <div style={{ fontSize: 13, lineHeight: 1.9, color: C.txt1, whiteSpace: "pre-wrap" }}>{aiText}</div>
+                    <button onClick={() => fetchAI(true)} className="no-print"
+                      style={{ marginTop: 10, background: "none", border: `1px solid ${C.border}`, padding: "4px 12px", borderRadius: 6, fontSize: 11, color: C.txt3, cursor: "pointer", fontFamily: "inherit" }}>
+                      재생성
                     </button>
                   </div>
+                ) : (
+                  <div style={{ fontSize: 13, color: C.txt3, fontStyle: "italic" }}>AI 요약을 불러올 수 없습니다</div>
                 )}
               </div>
             </Block>

@@ -117,8 +117,11 @@ function ArticleRow({ article, idx, isNew }) {
 }
 
 // ── 언론사 카드 ────────────────────────────────────────────
-function SourceCard({ src, newUrls }) {
-  const articles = src.articles.slice(0, 15);
+function SourceCard({ src, newUrls, activeCat }) {
+  const filtered = activeCat
+    ? src.articles.filter(a => a.category === activeCat)
+    : src.articles;
+  const articles = filtered.slice(0, 15);
   const newCnt   = articles.filter(a => newUrls.has(a.url)).length;
   const hdrBg    = SOURCE_HDR[src.key] ?? "#F8FAFC";
   const hdrTxt   = SOURCE_TXT[src.key] ?? "#334155";
@@ -147,13 +150,74 @@ function SourceCard({ src, newUrls }) {
           )}
         </div>
         <span style={{ color: C.txt3, fontSize: 10 }}>
-          {src.articles.length}건 · {fmtTime(src.articles[0]?.publishedAt)}
+          {filtered.length}건 · {fmtTime(filtered[0]?.publishedAt)}
         </span>
       </div>
 
       {articles.map((a, i) => (
         <ArticleRow key={a.url || i} article={a} idx={i} isNew={newUrls.has(a.url)} />
       ))}
+    </div>
+  );
+}
+
+// ── 카테고리 탭 ────────────────────────────────────────────
+function CategoryTabBar({ categories, activeCat, onSelect }) {
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      overflowX: "auto",
+      padding: "6px 10px",
+      background: C.surface,
+      border: `1px solid ${C.border}`,
+      borderRadius: 9,
+      marginBottom: 6,
+      scrollbarWidth: "none",
+    }}>
+      {/* 전체 탭 */}
+      <button
+        onClick={() => onSelect(null)}
+        style={{
+          padding: "3px 12px",
+          borderRadius: 20,
+          border: `1px solid ${!activeCat ? C.accent : C.border}`,
+          background: !activeCat ? "#EFF6FF" : C.bg,
+          color: !activeCat ? C.accent : C.txt3,
+          fontSize: 11, fontWeight: 700,
+          cursor: "pointer", flexShrink: 0,
+          transition: "all 0.15s",
+        }}
+      >전체</button>
+
+      <div style={{ width: 1, height: 16, background: C.border, flexShrink: 0 }} />
+
+      {categories.map(({ name, count }) => {
+        const active = activeCat === name;
+        const dot    = CAT_DOT[name] ?? "#94A3B8";
+        return (
+          <button
+            key={name}
+            onClick={() => onSelect(active ? null : name)}
+            style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "3px 10px",
+              borderRadius: 20,
+              border: `1px solid ${active ? dot + "88" : C.border}`,
+              background: active ? dot + "18" : C.bg,
+              color: active ? dot : C.txt2,
+              fontSize: 11, fontWeight: active ? 700 : 500,
+              cursor: "pointer", flexShrink: 0,
+              transition: "all 0.15s",
+            }}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: dot, flexShrink: 0 }} />
+            {name}
+            <span style={{ color: active ? dot : C.txt3, fontSize: 10 }}>{count}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -227,6 +291,7 @@ export default function Realtime() {
     try { return new Set(JSON.parse(localStorage.getItem(LS_KEY) || "[]")); }
     catch { return new Set(); }
   });
+  const [activeCat, setActiveCat] = useState(null);
 
   const seenRef   = useRef(new Set());
   const timersRef = useRef({});
@@ -299,8 +364,29 @@ export default function Realtime() {
     localStorage.setItem(LS_KEY, JSON.stringify([...next]));
   }
 
-  const visible       = sources.filter(s => !hidden.has(s.key));
-  const totalArticles = visible.reduce((n, s) => n + s.articles.length, 0);
+  // 매체 필터 적용
+  const visibleSources = sources.filter(s => !hidden.has(s.key));
+
+  // 카테고리 집계 (매체 필터 적용 후)
+  const catCountMap = {};
+  for (const src of visibleSources) {
+    for (const a of src.articles) {
+      if (a.category) catCountMap[a.category] = (catCountMap[a.category] || 0) + 1;
+    }
+  }
+  const categories = Object.entries(catCountMap)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, count]) => ({ name, count }));
+
+  // 카테고리 필터 적용 → 해당 카테고리 기사 없는 매체는 제외
+  const visible = activeCat
+    ? visibleSources.filter(s => s.articles.some(a => a.category === activeCat))
+    : visibleSources;
+
+  const totalArticles = visible.reduce((n, s) => {
+    const filtered = activeCat ? s.articles.filter(a => a.category === activeCat) : s.articles;
+    return n + filtered.length;
+  }, 0);
 
   return (
     <div style={{ fontFamily: "'Apple SD Gothic Neo','Pretendard',system-ui,sans-serif", background: C.bg, minHeight: "100vh" }}>
@@ -352,6 +438,15 @@ export default function Realtime() {
           </div>
         </div>
 
+        {/* 카테고리 탭 */}
+        {!loading && categories.length > 0 && (
+          <CategoryTabBar
+            categories={categories}
+            activeCat={activeCat}
+            onSelect={setActiveCat}
+          />
+        )}
+
         {/* 매체 필터 */}
         {!loading && sources.length > 0 && (
           <SourceFilterBar
@@ -375,7 +470,7 @@ export default function Realtime() {
             alignItems: "start",
           }}>
             {visible.map(src => (
-              <SourceCard key={src.key} src={src} newUrls={newUrls} />
+              <SourceCard key={src.key} src={src} newUrls={newUrls} activeCat={activeCat} />
             ))}
           </div>
         )}
