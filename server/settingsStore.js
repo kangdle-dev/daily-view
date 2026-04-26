@@ -1,10 +1,14 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { get as redisGet, set as redisSet, isRedisAvailable } from "./redisStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "../data");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
+
+const REDIS_SETTINGS_KEY = "settings:main";
+const REDIS_PROMPTS_KEY = "settings:prompts";
 
 /**
  * @file settingsStore.js
@@ -110,45 +114,57 @@ const DEFAULT_PROMPTS = {
 - 생동감 있고 구체적인 묘사`,
 };
 
-function read() {
-  try {
-    const raw = fs.readFileSync(SETTINGS_FILE, "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return { ...DEFAULT_SETTINGS };
-  }
+function readFile() {
+  try { return JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8")); }
+  catch { return { ...DEFAULT_SETTINGS }; }
 }
 
-function write(data) {
+function writeFile(data) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2));
 }
 
-/** 앱 설정 조회 — 파일 없으면 기본값 반환 */
-export async function getSettings() {
-  return read();
+function readPromptsFile() {
+  try {
+    return { ...DEFAULT_PROMPTS, ...JSON.parse(fs.readFileSync(PROMPTS_FILE, "utf8")) };
+  } catch { return { ...DEFAULT_PROMPTS }; }
 }
 
-/** 카테고리별 기사 작성 프롬프트 조회 — 파일 없으면 기본값 반환 */
-export async function getArticlePrompts() {
-  try {
-    const raw = fs.readFileSync(PROMPTS_FILE, "utf8");
-    return { ...DEFAULT_PROMPTS, ...JSON.parse(raw) };
-  } catch {
-    return { ...DEFAULT_PROMPTS };
+function writePromptsFile(data) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(PROMPTS_FILE, JSON.stringify(data, null, 2));
+}
+
+/** 앱 설정 조회 — Redis 우선, 없으면 파일 */
+export async function getSettings() {
+  if (isRedisAvailable()) {
+    const data = await redisGet(REDIS_SETTINGS_KEY);
+    if (data) return data;
   }
+  return readFile();
+}
+
+/** 카테고리별 기사 작성 프롬프트 조회 — Redis 우선, 없으면 파일 */
+export async function getArticlePrompts() {
+  if (isRedisAvailable()) {
+    const data = await redisGet(REDIS_PROMPTS_KEY);
+    if (data) return { ...DEFAULT_PROMPTS, ...data };
+  }
+  return readPromptsFile();
 }
 
 /** 카테고리별 프롬프트 저장 */
 export async function saveArticlePrompts(prompts) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(PROMPTS_FILE, JSON.stringify(prompts, null, 2));
+  if (isRedisAvailable()) {
+    await redisSet(REDIS_PROMPTS_KEY, prompts, 0);
+  } else {
+    writePromptsFile(prompts);
+  }
   return prompts;
 }
 
-/** 앱 설정 저장 — 유효성 검사 후 파일 쓰기 */
+/** 앱 설정 저장 — 유효성 검사 후 Redis/파일 저장 */
 export async function saveSettings(data) {
-  // Validate data
   if (!Array.isArray(data.mainCategories)) {
     throw new Error("mainCategories must be an array");
   }
@@ -165,6 +181,25 @@ export async function saveSettings(data) {
     throw new Error("briefingMinute must be 0-59");
   }
 
-  write(data);
+  if (isRedisAvailable()) {
+    await redisSet(REDIS_SETTINGS_KEY, data, 0);
+  } else {
+    writeFile(data);
+  }
   return data;
+}
+
+/** 서버 시작 시 파일 → Redis 최초 마이그레이션 (키 없을 때만) */
+export async function seedSettings() {
+  if (!isRedisAvailable()) return;
+  const existing = await redisGet(REDIS_SETTINGS_KEY);
+  if (!existing) {
+    await redisSet(REDIS_SETTINGS_KEY, readFile(), 0);
+    console.log("[settings] Redis에 초기 설정 로드됨");
+  }
+  const existingPrompts = await redisGet(REDIS_PROMPTS_KEY);
+  if (!existingPrompts) {
+    await redisSet(REDIS_PROMPTS_KEY, readPromptsFile(), 0);
+    console.log("[settings] Redis에 초기 프롬프트 로드됨");
+  }
 }

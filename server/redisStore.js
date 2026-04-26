@@ -57,7 +57,12 @@ export async function get(key) {
 export async function set(key, value, ttl = 3600) {
   if (!isConnected || !redisClient) return false;
   try {
-    await redisClient.setEx(key, ttl, JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    if (ttl > 0) {
+      await redisClient.setEx(key, ttl, serialized);
+    } else {
+      await redisClient.set(key, serialized); // 만료 없음
+    }
     return true;
   } catch (err) {
     console.warn(`[redis] set(${key}) failed:`, err.message);

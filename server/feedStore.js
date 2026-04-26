@@ -1,25 +1,41 @@
 /**
  * @file feedStore.js
  * RSS 피드 소스 관리 — Redis "feeds:all" 키에 TTL 없이 영구 저장
+ * Redis 미연결 시 data/feeds.json 파일로 폴백
  * 스키마: { sources: [{ id, key, name, feeds: [{ url, mainCategory }] }] }
  */
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { get as redisGet, set as redisSet, isRedisAvailable } from "./redisStore.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const FEEDS_PATH = path.join(__dirname, "../data/feeds.json");
 const REDIS_KEY = "feeds:all";
 
+function readFile() {
+  try { return JSON.parse(fs.readFileSync(FEEDS_PATH, "utf-8")); }
+  catch { return { sources: [] }; }
+}
+
+function writeFile(data) {
+  fs.writeFileSync(FEEDS_PATH, JSON.stringify(data, null, 2));
+}
+
 async function getData() {
-  if (!isRedisAvailable()) {
-    throw new Error("Redis 연결이 필요합니다");
+  if (isRedisAvailable()) {
+    const data = await redisGet(REDIS_KEY);
+    return data || { sources: [] };
   }
-  const data = await redisGet(REDIS_KEY);
-  return data || { sources: [] };
+  return readFile();
 }
 
 async function saveData(data) {
-  if (!isRedisAvailable()) {
-    throw new Error("Redis 연결이 필요합니다");
+  if (isRedisAvailable()) {
+    await redisSet(REDIS_KEY, data, 0); // TTL 0 = 영구 저장
+  } else {
+    writeFile(data);
   }
-  await redisSet(REDIS_KEY, data, 0); // TTL 0 = 영구 저장
 }
 
 /** 전체 RSS 소스 목록 반환 */

@@ -16,7 +16,7 @@ import { generateNewspimSuggestions } from "./newspimSuggestions.js";
 import { getCustomSources, addCustomSource, updateCustomSource, removeCustomSource } from "./feedStore.js";
 import { initAccounts, authenticate, getAccounts, addAccount, updateAccount, removeAccount } from "./accountStore.js";
 import { createSession, destroySession, authGuard, requireRole, checkRateLimit, resetRateLimit } from "./authMiddleware.js";
-import { getSettings, saveSettings, getArticlePrompts, saveArticlePrompts } from "./settingsStore.js";
+import { getSettings, saveSettings, getArticlePrompts, saveArticlePrompts, seedSettings } from "./settingsStore.js";
 import { restartScheduler } from "./scheduler.js";
 import { initRedis, seedData } from "./redisStore.js";
 import { sendTelegramMessage } from "./telegramService.js";
@@ -129,6 +129,8 @@ await initRedis();
 
 // Redis에 기본 feeds 로드 (없으면 생성)
 await seedData("feeds:all", { sources: DEFAULT_FEEDS.sources });
+// Redis에 기본 settings 로드 (없으면 파일에서 마이그레이션)
+await seedSettings();
 
 // ─── 보안: CORS (프로덕션에서는 동일 오리진만 허용) ──────
 const ALLOWED_ORIGINS = IS_PROD
